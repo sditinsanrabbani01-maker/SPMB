@@ -54,7 +54,7 @@ function doPost(e) {
 
     // 8. Aksi Save Payment
     if (action === "savePayment") {
-      var save = handleSavePayment(requestData.amount, requestData.name, requestData.status);
+      var save = handleSavePayment(requestData.amount, requestData.name, requestData.status, requestData.image, requestData.filename);
       return createResponse({ success: save });
     }
 
@@ -119,20 +119,20 @@ function handleSubmit(data) {
 }
 
 
- function handleGetData() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
-  var rows = sheet.getDataRange().getValues();
-  var result = [];
-  for (var i = 1; i < rows.length; i++) {
-    result.push({
-      noReg: rows[i][1],
-      nama: rows[i][2],
-      hp: rows[i][13] || rows[i][18], // HP Ayah atau Ibu
-      status: rows[i][22]
-    });
+  function handleGetData() {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+    var rows = sheet.getDataRange().getValues();
+    var result = [];
+    for (var i = 1; i < rows.length; i++) {
+      result.push({
+        noReg: rows[i][1],
+        nama: rows[i][2],
+        hp: rows[i][14] || rows[i][19], // HP Ayah atau Ibu
+        status: rows[i][23]
+      });
+    }
+    return result;
   }
-  return result;
-}
 
 function handleUpdateStatus(noReg, status) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");

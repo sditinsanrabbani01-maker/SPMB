@@ -1,5 +1,5 @@
 // config.js
-const CONFIG_API_URL = "https://script.google.com/macros/s/AKfycbze386lVnL77KAb58g2Y-tHLTXiwuIoF5zjXEDGlFi1qOzwB5O1STgolRTpJVMHADxXRw/exec";
+const CONFIG_API_URL = "https://script.google.com/macros/s/AKfycbxP5U1xh2EWkYItknSNU1DjZ4CkIS591yckwuFmjIs-ALTHdUJsb5mA49Tu5cBvpR0rNg/exec";
 const NAMA_SEKOLAH = "SDIT INSAN RABBANI";
 const ADMIN_USER = "admin"; // Ganti sesukamu
 const ADMIN_PASS = "admin123"; // Ganti sesukamu
