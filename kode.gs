@@ -1,8 +1,7 @@
 /**
- * PENGATURAN UTAMA
- * Ganti ID Folder di bawah ini dengan ID folder Google Drive tempat menyimpan berkas
+ * SISTEM SPMB - Google Apps Script
+ * Script untuk menangani pendaftaran siswa baru
  */
-const DRIVE_FOLDER_ID = "1X68-LaYIrVPni2utMXLB5AxGK2VmTGo5"; 
 
 function doPost(e) {
   try {
@@ -53,8 +52,7 @@ function setupSheet() {
     var headers = ["Timestamp", "No Registrasi", "Nama Lengkap", "NIK", "NISN", "Tempat Lahir", "Tanggal Lahir", "Jenis Kelamin", "Alamat",
                    "Nama Ayah", "Pekerjaan Ayah", "Alamat Ayah", "Gaji Ayah", "HP Ayah",
                    "Nama Ibu", "Pekerjaan Ibu", "Alamat Ibu", "Gaji Ibu", "HP Ibu",
-                   "Nama Sekolah", "NPSN", "Alamat Sekolah", "Status",
-                   "Link Foto", "Link KK", "Link Akta", "Link Bukti Bayar"];
+                   "Nama Sekolah", "NPSN", "Alamat Sekolah", "Status"];
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3");
   }
@@ -65,42 +63,13 @@ function handleSubmit(data) {
   var year = new Date().getFullYear();
   var regNo = "SPMB-" + year + "-" + ("0000" + sheet.getLastRow()).slice(-4);
 
-  // PERBAIKAN: Menambahkan error handling untuk folder Drive
-  var folder;
-  try {
-    folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-  } catch (e) {
-    // Jika folder tidak ditemukan, gunakan folder root atau buat folder baru
-    var rootFolder = DriveApp.getRootFolder();
-    folder = rootFolder.createFolder("SPMB_Uploads_" + year) || rootFolder.getFoldersByName("SPMB_Uploads_" + year).next();
-  }
-  
-  var urlFoto = data.foto ? uploadToDrive(data.foto, regNo + "_FOTO", folder) : "";
-  var urlKk   = data.kk   ? uploadToDrive(data.kk, regNo + "_KK", folder) : "";
-  var urlAkta = data.akta ? uploadToDrive(data.akta, regNo + "_AKTA", folder) : "";
-  var urlByr  = data.bayar ? uploadToDrive(data.bayar, regNo + "_BUKTI", folder) : "";
-
   sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.alamat,
                    data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
                    data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
-                   data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU",
-                   urlFoto, urlKk, urlAkta, urlByr]);
+                   data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
   return regNo;
 }
 
-function uploadToDrive(base64Data, fileName, folder) {
-  try {
-    var splitData = base64Data.split(',');
-    var contentType = splitData.match(/:(.*?);/); // Ambil tipe konten
-    var rawData = Utilities.base64Decode(splitData); // Gunakan data setelah koma
-    var blob = Utilities.newBlob(rawData, contentType, fileName);
-    var file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return file.getUrl();
-  } catch (e) {
-    return "Error: " + e.toString();
-  }
-}
 
  function handleGetData() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
