@@ -80,6 +80,7 @@ function setupSheet() {
     settingsSheet.appendRow(["Key", "Value"]);
     settingsSheet.getRange(1, 1, 1, 2).setFontWeight("bold").setBackground("#d9ead3");
     settingsSheet.appendRow(["registration_open", "true"]);
+    settingsSheet.appendRow(["show_registration", "true"]);
     settingsSheet.appendRow(["hero_text", "Selamat Datang di SPMB SDIT INSAN RABBANI Online"]);
     settingsSheet.appendRow(["hero_subtext", "Tahun Ajaran 2026/2027"]);
     settingsSheet.appendRow(["hero_quote", "\"Wujudkan Generasi Qurani Sejak Dini Bersama Kami\""]);
