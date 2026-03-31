@@ -50,7 +50,11 @@ function setupSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Data_SPMB") || ss.insertSheet("Data_SPMB");
   if (sheet.getLastRow() === 0) {
-    var headers = ["Timestamp", "No Registrasi", "Nama Lengkap", "NISN", "TTL", "Jenis Kelamin", "Alamat", "Data Ayah", "Data Ibu", "WhatsApp", "Asal Sekolah", "Status", "Link Foto", "Link KK", "Link Akta", "Link Bukti Bayar"];
+    var headers = ["Timestamp", "No Registrasi", "Nama Lengkap", "NIK", "NISN", "Tempat Lahir", "Tanggal Lahir", "Jenis Kelamin", "Alamat",
+                   "Nama Ayah", "Pekerjaan Ayah", "Alamat Ayah", "Gaji Ayah", "HP Ayah",
+                   "Nama Ibu", "Pekerjaan Ibu", "Alamat Ibu", "Gaji Ibu", "HP Ibu",
+                   "Nama Sekolah", "NPSN", "Alamat Sekolah", "Status",
+                   "Link Foto", "Link KK", "Link Akta", "Link Bukti Bayar"];
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3");
   }
@@ -76,7 +80,11 @@ function handleSubmit(data) {
   var urlAkta = data.akta ? uploadToDrive(data.akta, regNo + "_AKTA", folder) : "";
   var urlByr  = data.bayar ? uploadToDrive(data.bayar, regNo + "_BUKTI", folder) : "";
 
-  sheet.appendRow([new Date(), regNo, data.nama, data.nisn, data.ttl, data.jk, data.alamat, data.ayah, data.ibu, data.hp, data.sekolah, "MENUNGGU", urlFoto, urlKk, urlAkta, urlByr]);
+  sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.alamat,
+                   data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
+                   data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
+                   data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU",
+                   urlFoto, urlKk, urlAkta, urlByr]);
   return regNo;
 }
 
@@ -102,8 +110,8 @@ function uploadToDrive(base64Data, fileName, folder) {
     result.push({
       noReg: rows[i][1],
       nama: rows[i][2],
-      hp: rows[i][9],
-      status: rows[i][11]
+      hp: rows[i][13] || rows[i][18], // HP Ayah atau Ibu
+      status: rows[i][22]
     });
   }
   return result;
@@ -114,7 +122,7 @@ function handleUpdateStatus(noReg, status) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][1] === noReg) {
-      sheet.getRange(i + 1, 12).setValue(status);
+      sheet.getRange(i + 1, 23).setValue(status); // Kolom Status sekarang di posisi 23 (index 22)
       return true;
     }
   }
@@ -125,11 +133,11 @@ function handleCekStatus(keyword) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    // Cek berdasarkan No Registrasi atau NISN
-    if (rows[i][1] === keyword || rows[i][3].toString() === keyword) {
+    // Cek berdasarkan No Registrasi, NIK, atau NISN
+    if (rows[i][1] === keyword || rows[i][3].toString() === keyword || rows[i][4].toString() === keyword) {
       return {
         nama: rows[i][2],
-        status: rows[i][11]
+        status: rows[i][22]
       };
     }
   }

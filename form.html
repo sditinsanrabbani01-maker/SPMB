@@ -23,12 +23,20 @@
         <a href="index.html" class="btn btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-2"></i>Kembali</a>
         
         <div class="card card-form p-4 mb-4 bg-light border">
-          <h4 class="fw-bold mb-3" style="color: #0083B0;"><i class="fas fa-clipboard-list me-2"></i>Persyaratan Pendaftaran SPMB</h4>
+          <h4 class="fw-bold mb-3" style="color: #0083B0;"><i class="fas fa-clipboard-list me-2"></i>Syarat dan Ketentuan Pendaftaran SPMB</h4>
           <div class="row small text-secondary">
             <div class="col-md-6">
+              <h6><b>📋 Syarat Umum:</b></h6>
+              <ul>
+                <li>Usia 6 tahun sebelum 1 Juli 2026</li>
+                <li>Beragama Islam</li>
+                <li>Sehat jasmani dan rohani</li>
+                <li>Tidak buta warna</li>
+                <li>Bersedia mengikuti kurikulum SDIT</li>
+              </ul>
               <h6><b>📂 Berkas yang Disiapkan:</b></h6>
               <ul>
-                <li>Pas Foto siswa terbaru</li>
+                <li>Pas Foto siswa terbaru (4x6 cm)</li>
                 <li>Kartu Keluarga (KK)</li>
                 <li>Akta Kelahiran</li>
                 <li>Bukti pembayaran pendaftaran</li>
@@ -37,9 +45,11 @@
             <div class="col-md-6">
               <h6><b>⚠️ Ketentuan:</b></h6>
               <ul>
-                <li>Pastikan semua data diisi dengan benar</li>
-                <li>Berkas harus jelas (tidak blur)</li>
-                <li>Gunakan format Gambar (JPG/PNG) atau PDF</li>
+                <li>Pastikan semua data diisi dengan benar dan lengkap</li>
+                <li>Berkas harus jelas (tidak blur) dan format JPG/PNG/PDF</li>
+                <li>Ukuran file maksimal 5MB per berkas</li>
+                <li>Data yang sudah dikirim tidak dapat diubah</li>
+                <li>Pendaftaran bersifat final</li>
               </ul>
             </div>
           </div>
@@ -57,41 +67,143 @@
               </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
-                  <label class="form-label">NISN *</label>
-                  <input type="number" id="nisn" class="form-control" required>
+                  <label class="form-label">NIK *</label>
+                  <input type="number" id="nik" class="form-control" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label class="form-label">Jenis Kelamin *</label>
-                  <select id="jk" class="form-select" required>
-                    <option value="" disabled selected>Pilih...</option>
-                    <option value="Laki-laki">Laki-laki</option>
-                    <option value="Perempuan">Perempuan</option>
-                  </select>
+                  <label class="form-label">NISN</label>
+                  <input type="number" id="nisn" class="form-control" placeholder="Opsional">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Tempat Lahir *</label>
+                  <input type="text" id="tempatLahir" class="form-control" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Tanggal Lahir *</label>
+                  <input type="date" id="tanggalLahir" class="form-control" required>
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Tempat & Tanggal Lahir *</label>
-                <input type="text" id="ttl" class="form-control" required placeholder="Contoh: Surabaya, 10 Mei 2012">
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Asal Sekolah *</label>
-                <input type="text" id="sekolah" class="form-control" required>
+                <label class="form-label">Jenis Kelamin *</label>
+                <select id="jk" class="form-select" required>
+                  <option value="" disabled selected>Pilih...</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
               </div>
               <div class="mb-3">
                 <label class="form-label">Alamat Lengkap *</label>
-                <textarea id="alamat" class="form-control" rows="2" required></textarea>
+                <select id="alamatSelect" class="form-select mb-2" onchange="toggleManualAddress()">
+                  <option value="" disabled selected>Pilih Desa/Kelurahan di Kecamatan Malili...</option>
+                  <optgroup label="Desa/Kelurahan">
+                    <option value="Malili">Malili</option>
+                    <option value="Bambalu">Bambalu</option>
+                    <option value="Bontobangun">Bontobangun</option>
+                    <option value="Kalimporo">Kalimporo</option>
+                    <option value="Limboto">Limboto</option>
+                    <option value="Puncak Indah">Puncak Indah</option>
+                    <option value="Tabongo">Tabongo</option>
+                    <option value="Tampo">Tampo</option>
+                  </optgroup>
+                  <optgroup label="Daerah Khusus">
+                    <option value="KM4">KM4</option>
+                    <option value="KM5">KM5</option>
+                  </optgroup>
+                  <option value="lainnya">Lainnya (isi manual)</option>
+                </select>
+                <textarea id="alamatManual" class="form-control" rows="2" placeholder="Masukkan alamat lengkap jika memilih Lainnya" style="display: none;"></textarea>
               </div>
 
               <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-users me-2"></i>Data Orang Tua</h5>
+
+              <h6>Data Ayah</h6>
               <div class="row">
-                <div class="col-md-6 mb-3"><label class="form-label">Data Ayah (Nama & Pekerjaan) *</label><input type="text" id="ayah" class="form-control" placeholder="Contoh: Ahmad - Wiraswasta" required></div>
-                <div class="col-md-6 mb-3"><label class="form-label">Data Ibu (Nama & Pekerjaan) *</label><input type="text" id="ibu" class="form-control" placeholder="Contoh: Siti - Guru" required></div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Nama Ayah *</label>
+                  <input type="text" id="namaAyah" class="form-control" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Pekerjaan *</label>
+                  <input type="text" id="pekerjaanAyah" class="form-control" required>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Alamat</label>
+                <select id="alamatAyahSelect" class="form-select mb-2" onchange="toggleAyahAddress()">
+                  <option value="sama">Samakan dengan alamat anak</option>
+                  <option value="manual">Isi manual</option>
+                </select>
+                <textarea id="alamatAyahManual" class="form-control" rows="2" placeholder="Masukkan alamat ayah" style="display: none;"></textarea>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Gaji/Penghasilan *</label>
+                  <select id="gajiAyah" class="form-select" required>
+                    <option value="" disabled selected>Pilih...</option>
+                    <option value="< 1 juta">< 1 juta</option>
+                    <option value="1-3 juta">1-3 juta</option>
+                    <option value="3-5 juta">3-5 juta</option>
+                    <option value="> 5 juta">> 5 juta</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Nomor WhatsApp *</label>
+                  <input type="tel" id="hpAyah" class="form-control" placeholder="08xxxxxxxxxx">
+                </div>
               </div>
 
-              <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-phone me-2"></i>Kontak</h5>
+              <h6>Data Ibu</h6>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Nama Ibu *</label>
+                  <input type="text" id="namaIbu" class="form-control" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Pekerjaan *</label>
+                  <input type="text" id="pekerjaanIbu" class="form-control" required>
+                </div>
+              </div>
               <div class="mb-3">
-                <label class="form-label">Nomor WhatsApp Aktif *</label>
-                <input type="tel" id="hp" class="form-control" required placeholder="08xxxxxxxxxx">
+                <label class="form-label">Alamat</label>
+                <select id="alamatIbuSelect" class="form-select mb-2" onchange="toggleIbuAddress()">
+                  <option value="sama">Samakan dengan alamat anak</option>
+                  <option value="manual">Isi manual</option>
+                </select>
+                <textarea id="alamatIbuManual" class="form-control" rows="2" placeholder="Masukkan alamat ibu" style="display: none;"></textarea>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Gaji/Penghasilan *</label>
+                  <select id="gajiIbu" class="form-select" required>
+                    <option value="" disabled selected>Pilih...</option>
+                    <option value="< 1 juta">< 1 juta</option>
+                    <option value="1-3 juta">1-3 juta</option>
+                    <option value="3-5 juta">3-5 juta</option>
+                    <option value="> 5 juta">> 5 juta</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Nomor WhatsApp *</label>
+                  <input type="tel" id="hpIbu" class="form-control" placeholder="08xxxxxxxxxx">
+                </div>
+              </div>
+
+              <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-school me-2"></i>Data Sekolah Asal (Opsional)</h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Nama Sekolah</label>
+                  <input type="text" id="namaSekolah" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">NPSN</label>
+                  <input type="text" id="npsn" class="form-control">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Alamat Sekolah</label>
+                <textarea id="alamatSekolah" class="form-control" rows="2"></textarea>
               </div>
 
               <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-file-upload me-2"></i>Upload Berkas</h5>
@@ -131,6 +243,39 @@
     // Memastikan API_URL terbaca dari config.js
     const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
 
+    function toggleManualAddress() {
+      const select = document.getElementById('alamatSelect');
+      const manual = document.getElementById('alamatManual');
+      manual.style.display = select.value === 'lainnya' ? 'block' : 'none';
+      if (select.value === 'lainnya') {
+        manual.required = true;
+      } else {
+        manual.required = false;
+      }
+    }
+
+    function toggleAyahAddress() {
+      const select = document.getElementById('alamatAyahSelect');
+      const manual = document.getElementById('alamatAyahManual');
+      manual.style.display = select.value === 'manual' ? 'block' : 'none';
+      if (select.value === 'manual') {
+        manual.required = true;
+      } else {
+        manual.required = false;
+      }
+    }
+
+    function toggleIbuAddress() {
+      const select = document.getElementById('alamatIbuSelect');
+      const manual = document.getElementById('alamatIbuManual');
+      manual.style.display = select.value === 'manual' ? 'block' : 'none';
+      if (select.value === 'manual') {
+        manual.required = true;
+      } else {
+        manual.required = false;
+      }
+    }
+
     async function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -147,18 +292,55 @@
       btn.disabled = true;
       loader.style.display = 'block';
       
+      // Validasi Usia (harus 6 tahun sebelum 1 Juli 2026)
+      const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
+      const batasUsia = new Date('2026-07-01');
+      const usiaDalamTahun = (batasUsia - tanggalLahir) / (365.25 * 24 * 60 * 60 * 1000);
+      if (usiaDalamTahun < 6) {
+        alert("Usia minimal harus 6 tahun sebelum 1 Juli 2026!");
+        return;
+      }
+
+      // Validasi WhatsApp
+      const hpAyah = document.getElementById('hpAyah').value;
+      const hpIbu = document.getElementById('hpIbu').value;
+      if (!hpAyah && !hpIbu) {
+        alert("Minimal salah satu nomor WhatsApp (ayah atau ibu) harus diisi!");
+        return;
+      }
+
+      // Ambil alamat siswa
+      let alamatSiswa = document.getElementById('alamatSelect').value;
+      if (alamatSiswa === 'lainnya') {
+        alamatSiswa = document.getElementById('alamatManual').value;
+      }
+
       const payload = {
         action: "submitForm",
         data: {
           nama: document.getElementById('nama').value,
+          nik: document.getElementById('nik').value,
           nisn: document.getElementById('nisn').value,
+          tempatLahir: document.getElementById('tempatLahir').value,
+          tanggalLahir: document.getElementById('tanggalLahir').value,
           jk: document.getElementById('jk').value,
-          ttl: document.getElementById('ttl').value,
-          sekolah: document.getElementById('sekolah').value,
-          alamat: document.getElementById('alamat').value,
-          hp: document.getElementById('hp').value,
-          ayah: document.getElementById('ayah').value,
-          ibu: document.getElementById('ibu').value
+          alamat: alamatSiswa,
+          // Data Ayah
+          namaAyah: document.getElementById('namaAyah').value,
+          pekerjaanAyah: document.getElementById('pekerjaanAyah').value,
+          alamatAyah: document.getElementById('alamatAyahSelect').value === 'sama' ? alamatSiswa : document.getElementById('alamatAyahManual').value,
+          gajiAyah: document.getElementById('gajiAyah').value,
+          hpAyah: hpAyah,
+          // Data Ibu
+          namaIbu: document.getElementById('namaIbu').value,
+          pekerjaanIbu: document.getElementById('pekerjaanIbu').value,
+          alamatIbu: document.getElementById('alamatIbuSelect').value === 'sama' ? alamatSiswa : document.getElementById('alamatIbuManual').value,
+          gajiIbu: document.getElementById('gajiIbu').value,
+          hpIbu: hpIbu,
+          // Data Sekolah (opsional)
+          namaSekolah: document.getElementById('namaSekolah').value,
+          npsn: document.getElementById('npsn').value,
+          alamatSekolah: document.getElementById('alamatSekolah').value
         }
       };
 
