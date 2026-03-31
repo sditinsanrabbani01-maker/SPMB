@@ -264,10 +264,27 @@
     async function handleFormSubmit() {
       const btn = document.getElementById('btnKirim');
       const loader = document.getElementById('submitLoader');
-      
+
       btn.disabled = true;
       loader.style.display = 'block';
-      
+
+      // Check if registration is open
+      try {
+        const settingsRes = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+        const settingsResult = await settingsRes.json();
+        if (settingsResult.data.registration_open !== 'true') {
+          alert("Pendaftaran sedang ditutup. Silakan coba lagi nanti.");
+          btn.disabled = false;
+          loader.style.display = 'none';
+          return;
+        }
+      } catch (e) {
+        alert("Gagal memeriksa status pendaftaran.");
+        btn.disabled = false;
+        loader.style.display = 'none';
+        return;
+      }
+
       // Validasi Usia (harus 6 tahun sebelum 1 Juli 2026)
       const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
       const batasUsia = new Date('2026-07-01');

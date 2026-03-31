@@ -34,6 +34,18 @@ function doPost(e) {
       return info ? createResponse({ success: true, data: info }) : createResponse({ success: false });
     }
 
+    // 5. Aksi Ambil Settings
+    if (action === "getSettings") {
+      var settings = handleGetSettings();
+      return createResponse({ success: true, data: settings });
+    }
+
+    // 6. Aksi Update Settings
+    if (action === "updateSettings") {
+      var update = handleUpdateSettings(requestData.key, requestData.value);
+      return createResponse({ success: update });
+    }
+
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
 
   } catch (error) {
@@ -56,6 +68,16 @@ function setupSheet() {
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3");
   }
+
+  var settingsSheet = ss.getSheetByName("Settings") || ss.insertSheet("Settings");
+  if (settingsSheet.getLastRow() === 0) {
+    settingsSheet.appendRow(["Key", "Value"]);
+    settingsSheet.getRange(1, 1, 1, 2).setFontWeight("bold").setBackground("#d9ead3");
+    settingsSheet.appendRow(["registration_open", "true"]);
+    settingsSheet.appendRow(["hero_text", "Selamat Datang di SPMB SDIT INSAN RABBANI Online"]);
+    settingsSheet.appendRow(["hero_subtext", "Tahun Ajaran 2026/2027"]);
+    settingsSheet.appendRow(["hero_quote", "\"Wujudkan Generasi Qurani Sejak Dini Bersama Kami\""]);
+  }
 }
 
 function handleSubmit(data) {
@@ -67,6 +89,14 @@ function handleSubmit(data) {
                    data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
                    data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
                    data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
+
+  // Send WhatsApp notification
+  var whatsappNumber = data.hpAyah || data.hpIbu;
+  if (whatsappNumber) {
+    var message = "Pendaftaran SPMB SDIT Insan Rabbani berhasil!\n\nNo Registrasi: " + regNo + "\nNama: " + data.nama + "\nStatus: MENUNGGU\n\nSilakan cek status pendaftaran secara berkala.";
+    sendWhatsAppMessage(whatsappNumber, message);
+  }
+
   return regNo;
 }
 
@@ -91,7 +121,18 @@ function handleUpdateStatus(noReg, status) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][1] === noReg) {
+      var oldStatus = rows[i][23];
       sheet.getRange(i + 1, 24).setValue(status); // Kolom Status sekarang di posisi 24 (index 23)
+
+      // Send WhatsApp if status changed
+      if (oldStatus !== status) {
+        var whatsappNumber = rows[i][13] || rows[i][18]; // HP Ayah or Ibu
+        if (whatsappNumber) {
+          var message = "Update Status Pendaftaran SPMB SDIT Insan Rabbani\n\nNo Registrasi: " + noReg + "\nNama: " + rows[i][2] + "\nStatus Baru: " + status + "\n\nTerima kasih.";
+          sendWhatsAppMessage(whatsappNumber, message);
+        }
+      }
+
       return true;
     }
   }
@@ -111,4 +152,49 @@ function handleCekStatus(keyword) {
     }
   }
   return null;
+}
+
+function handleGetSettings() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Settings");
+  var rows = sheet.getDataRange().getValues();
+  var settings = {};
+  for (var i = 1; i < rows.length; i++) {
+    settings[rows[i][0]] = rows[i][1];
+  }
+  return settings;
+}
+
+function handleUpdateSettings(key, value) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Settings");
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === key) {
+      sheet.getRange(i + 1, 2).setValue(value);
+      return true;
+    }
+  }
+  // If not found, add new
+  sheet.appendRow([key, value]);
+  return true;
+}
+
+function sendWhatsAppMessage(number, message) {
+  var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
+  var url = "https://api.whacenter.com/api/send";
+  var payload = {
+    device_id: deviceId,
+    number: number,
+    message: message
+  };
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload)
+  };
+  try {
+    UrlFetchApp.fetch(url, options);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

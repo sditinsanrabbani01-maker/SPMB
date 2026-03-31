@@ -19,9 +19,9 @@
 <body>
   <div class="hero-section text-center">
     <div class="container">
-      <h1 class="display-4 fw-bold">Selamat Datang di SPMB SDIT INSAN RABBANI Online</h1>
-      <p class="lead">Tahun Ajaran 2026/2027</p>
-      <p class="fst-italic">"Wujudkan Generasi Qurani Sejak Dini Bersama Kami"</p>
+      <h1 class="display-4 fw-bold" id="heroTitle">Selamat Datang di SPMB SDIT INSAN RABBANI Online</h1>
+      <p class="lead" id="heroSub">Tahun Ajaran 2026/2027</p>
+      <p class="fst-italic" id="heroQuote">"Wujudkan Generasi Qurani Sejak Dini Bersama Kami"</p>
       <div class="mt-4">
         <a href="pembayaran.html" class="btn btn-lg btn-light fw-bold mx-2 px-4 shadow-sm"><i class="fas fa-user-plus me-2"></i>Daftar Sekarang</a>
         <a href="cek.html" class="btn btn-lg btn-outline-light fw-bold mx-2 px-4"><i class="fas fa-search me-2"></i>Cek Pendaftaran</a>
@@ -164,5 +164,22 @@
       </div>
     </div>
   </div>
+
+  <script src="config.js"></script>
+  <script>
+    async function loadContent() {
+      try {
+        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+        const result = await res.json();
+        const data = result.data;
+        if (data.hero_text) document.getElementById('heroTitle').innerText = data.hero_text;
+        if (data.hero_subtext) document.getElementById('heroSub').innerText = data.hero_subtext;
+        if (data.hero_quote) document.getElementById('heroQuote').innerText = data.hero_quote;
+      } catch (e) {
+        console.log('Failed to load dynamic content');
+      }
+    }
+    loadContent();
+  </script>
 </body>
 </html>

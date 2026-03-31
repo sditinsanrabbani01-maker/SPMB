@@ -2,7 +2,17 @@
 <html lang="id">
 <head><title>Dashboard Admin</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head>
 <body><div class="container mt-4">
-    <h3>Data Pendaftar SPMB</h3>
+    <h3>Dashboard Admin SPMB</h3>
+    <div class="mb-4">
+        <h5>Pengaturan Pendaftaran</h5>
+        <div id="settingsDiv"></div>
+    </div>
+    <div class="mb-4">
+        <h5>Pengaturan Konten</h5>
+        <div id="contentDiv"></div>
+        <button onclick="saveContent()" class="btn btn-primary mt-2">Simpan Konten</button>
+    </div>
+    <h5>Data Pendaftar SPMB</h5>
     <table class="table table-bordered mt-3">
         <thead class="table-dark"><tr><th>No Reg</th><th>Nama</th><th>WhatsApp</th><th>Status</th><th>Aksi</th></tr></thead>
         <tbody id="tBody"></tbody>
@@ -24,6 +34,52 @@
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateStatus", noReg: no, status: s }) });
         loadData();
     }
+    async function loadSettings() {
+        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+        const result = await res.json();
+        const div = document.getElementById('settingsDiv');
+        const isOpen = result.data.registration_open === 'true';
+        div.innerHTML = `
+            <p>Pendaftaran: <strong>${isOpen ? 'BUKA' : 'TUTUP'}</strong></p>
+            <button onclick="toggleReg()" class="btn ${isOpen ? 'btn-danger' : 'btn-success'}">${isOpen ? 'Tutup' : 'Buka'} Pendaftaran</button>
+        `;
+        loadContent(result.data);
+    }
+    async function toggleReg() {
+        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+        const result = await res.json();
+        const isOpen = result.data.registration_open === 'true';
+        const newVal = isOpen ? 'false' : 'true';
+        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "registration_open", value: newVal }) });
+        loadSettings();
+    }
+    function loadContent(data) {
+        const div = document.getElementById('contentDiv');
+        div.innerHTML = `
+            <div class="mb-3">
+                <label>Judul Hero</label>
+                <input type="text" id="hero_text" class="form-control" value="${data.hero_text || ''}">
+            </div>
+            <div class="mb-3">
+                <label>Sub Judul Hero</label>
+                <input type="text" id="hero_subtext" class="form-control" value="${data.hero_subtext || ''}">
+            </div>
+            <div class="mb-3">
+                <label>Quote Hero</label>
+                <input type="text" id="hero_quote" class="form-control" value="${data.hero_quote || ''}">
+            </div>
+        `;
+    }
+    async function saveContent() {
+        const hero_text = document.getElementById('hero_text').value;
+        const hero_subtext = document.getElementById('hero_subtext').value;
+        const hero_quote = document.getElementById('hero_quote').value;
+        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_text", value: hero_text }) });
+        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_subtext", value: hero_subtext }) });
+        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_quote", value: hero_quote }) });
+        alert('Konten disimpan!');
+    }
     loadData();
+    loadSettings();
 </script>
 </body></html>
