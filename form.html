@@ -23,19 +23,6 @@
       <div class="col-md-8">
         <a href="index.html" class="btn btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-2"></i>Kembali</a>
         
-        <!-- Payment Confirmation Section -->
-        <div class="card card-form p-4 mb-4" id="paymentSection">
-          <h4 class="fw-bold mb-3" style="color: #0141a4;"><i class="fas fa-credit-card me-2"></i>Konfirmasi Pembayaran</h4>
-          <p class="text-muted">Upload bukti pembayaran untuk verifikasi otomatis sebelum mengisi formulir.</p>
-          <div class="mb-3">
-            <input type="file" id="buktiPembayaran" class="form-control" accept="image/*">
-          </div>
-          <button onclick="processPayment()" class="btn btn-success btn-lg px-5 mb-3" id="btnProcess">
-            <i class="fas fa-upload me-2"></i>Konfirmasi Pembayaran
-          </button>
-          <div id="paymentStatus"></div>
-        </div>
-
         <div class="card card-form p-4 mb-4 bg-light border">
           <h4 class="fw-bold mb-3" style="color: #0141a4;"><i class="fas fa-clipboard-list me-2"></i>Syarat dan Ketentuan Pendaftaran SPMB</h4>
           <div class="row small text-secondary">
@@ -50,7 +37,7 @@
               </ul>
             </div>
 
-        <div class="card card-form p-4" id="formSection" style="display:none;">
+        <div class="card card-form p-4">
           <div class="card-body">
             <h3 class="text-center fw-bold mb-4" style="color: #0141a4;">Formulir Pendaftaran</h3>
             
@@ -238,6 +225,19 @@
 
   <script src="config.js"></script>
   <script>
+    // Check registration status on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+        const result = await res.json();
+        if (result.data.registration_open && result.data.registration_open.toLowerCase() !== 'true') {
+          window.location.href = 'closed.html';
+        }
+      } catch (e) {
+        console.log('Failed to check registration status');
+      }
+    });
+
     function showLoadingPopup(message) {
       const popup = document.createElement('div');
       popup.id = 'loadingPopup';
@@ -430,22 +430,6 @@
       btn.disabled = true;
       loader.style.display = 'block';
 
-      // Check if registration is open
-      try {
-        const settingsRes = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
-        const settingsResult = await settingsRes.json();
-        if (settingsResult.data.registration_open && settingsResult.data.registration_open.toLowerCase() !== 'true') {
-          alert("Pendaftaran sedang ditutup. Silakan coba lagi nanti.");
-          btn.disabled = false;
-          loader.style.display = 'none';
-          return;
-        }
-      } catch (e) {
-        alert("Gagal memeriksa status pendaftaran.");
-        btn.disabled = false;
-        loader.style.display = 'none';
-        return;
-      }
 
       // Validasi Usia (harus 6 tahun sebelum 1 Juli 2026)
       const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
