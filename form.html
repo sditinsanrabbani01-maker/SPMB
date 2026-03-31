@@ -162,17 +162,17 @@
         }
       };
 
-       try {
-         // PERBAIKAN: Mengambil file pertama dari FileList
-         const fFoto = document.getElementById('foto').files[0];
-         const fKk = document.getElementById('kk').files[0];
-         const fAkta = document.getElementById('akta').files[0];
-         const fBayar = document.getElementById('bayar').files[0];
+      try {
+        // PERBAIKAN: Mengambil karena input file adalah array
+        const fFoto = document.getElementById('foto').files;
+        const fKk = document.getElementById('kk').files;
+        const fAkta = document.getElementById('akta').files;
+        const fBayar = document.getElementById('bayar').files;
 
-         if(fFoto) payload.data.foto = await fileToBase64(fFoto);
-         if(fKk) payload.data.kk = await fileToBase64(fKk);
-         if(fAkta) payload.data.akta = await fileToBase64(fAkta);
-         if(fBayar) payload.data.bayar = await fileToBase64(fBayar);
+        if(fFoto) payload.data.foto = await fileToBase64(fFoto);
+        if(fKk) payload.data.kk = await fileToBase64(fKk);
+        if(fAkta) payload.data.akta = await fileToBase64(fAkta);
+        if(fBayar) payload.data.bayar = await fileToBase64(fBayar);
 
         const response = await fetch(URL_GAS, {
           method: "POST",
