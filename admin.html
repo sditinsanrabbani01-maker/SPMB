@@ -41,13 +41,40 @@
     </div>
 
     <div class="mb-4">
-        <h5>Pengaturan Pendaftaran</h5>
-        <div id="settingsDiv"></div>
-    </div>
-    <div class="mb-4">
-        <h5>Pengaturan Konten</h5>
-        <div id="contentDiv"></div>
-        <button onclick="saveContent()" class="btn btn-primary mt-2">Simpan Konten</button>
+        <h5>Pengaturan Sistem</h5>
+        <form id="settingsForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="registration_open">
+                        <label class="form-check-label" for="registration_open">
+                            Buka Pendaftaran
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="show_registration">
+                        <label class="form-check-label" for="show_registration">
+                            Tampilkan Tombol Pendaftaran
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="hero_text" class="form-label">Judul Hero</label>
+                        <input type="text" class="form-control" id="hero_text">
+                    </div>
+                    <div class="mb-3">
+                        <label for="hero_subtext" class="form-label">Sub Judul Hero</label>
+                        <input type="text" class="form-control" id="hero_subtext">
+                    </div>
+                    <div class="mb-3">
+                        <label for="hero_quote" class="form-label">Quote Hero</label>
+                        <input type="text" class="form-control" id="hero_quote">
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="saveSettings()" class="btn btn-primary">Simpan Pengaturan</button>
+        </form>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -186,56 +213,25 @@
     async function loadSettings() {
         const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
         const result = await res.json();
-        const div = document.getElementById('settingsDiv');
-        const isOpen = result.data.registration_open === 'true';
-        div.innerHTML = `
-            <p>Pendaftaran: <strong>${isOpen ? 'BUKA' : 'TUTUP'}</strong></p>
-            <button onclick="toggleReg()" class="btn ${isOpen ? 'btn-danger' : 'btn-success'}">${isOpen ? 'Tutup' : 'Buka'} Pendaftaran</button>
-        `;
-        loadContent(result.data);
+        const data = result.data;
+        document.getElementById('registration_open').checked = data.registration_open === 'true';
+        document.getElementById('show_registration').checked = data.show_registration === 'true';
+        document.getElementById('hero_text').value = data.hero_text || '';
+        document.getElementById('hero_subtext').value = data.hero_subtext || '';
+        document.getElementById('hero_quote').value = data.hero_quote || '';
     }
-    async function toggleReg() {
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
-        const result = await res.json();
-        const isOpen = result.data.registration_open === 'true';
-        const newVal = isOpen ? 'false' : 'true';
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "registration_open", value: newVal }) });
-        loadSettings();
-    }
-    function loadContent(data) {
-        const div = document.getElementById('contentDiv');
-        div.innerHTML = `
-            <div class="mb-3">
-                <label>Judul Hero</label>
-                <input type="text" id="hero_text" class="form-control" value="${data.hero_text || ''}">
-            </div>
-            <div class="mb-3">
-                <label>Sub Judul Hero</label>
-                <input type="text" id="hero_subtext" class="form-control" value="${data.hero_subtext || ''}">
-            </div>
-            <div class="mb-3">
-                <label>Quote Hero</label>
-                <input type="text" id="hero_quote" class="form-control" value="${data.hero_quote || ''}">
-            </div>
-            <div class="mb-3">
-                <label>Tampilkan Tombol Pendaftaran</label>
-                <select id="show_registration" class="form-select">
-                    <option value="true" ${data.show_registration === 'true' ? 'selected' : ''}>Ya</option>
-                    <option value="false" ${data.show_registration === 'false' ? 'selected' : ''}>Tidak</option>
-                </select>
-            </div>
-        `;
-    }
-    async function saveContent() {
+    async function saveSettings() {
+        const registration_open = document.getElementById('registration_open').checked ? 'true' : 'false';
+        const show_registration = document.getElementById('show_registration').checked ? 'true' : 'false';
         const hero_text = document.getElementById('hero_text').value;
         const hero_subtext = document.getElementById('hero_subtext').value;
         const hero_quote = document.getElementById('hero_quote').value;
-        const show_registration = document.getElementById('show_registration').value;
+        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "registration_open", value: registration_open }) });
+        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "show_registration", value: show_registration }) });
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_text", value: hero_text }) });
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_subtext", value: hero_subtext }) });
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_quote", value: hero_quote }) });
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "show_registration", value: show_registration }) });
-        alert('Konten disimpan!');
+        alert('Pengaturan disimpan!');
     }
     loadData();
     loadSettings();
