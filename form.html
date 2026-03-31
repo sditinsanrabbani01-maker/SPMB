@@ -173,23 +173,32 @@
         }
       };
 
-      // Proses konversi file dengan Log Jelas
+      // Proses konversi file dengan Log Jelas & Validasi Ketat
       try {
-        const fileFoto = document.getElementById('foto').files;
-        const fileKk = document.getElementById('kk').files;
-        const fileAkta = document.getElementById('akta').files;
-        const fileBayar = document.getElementById('bayar').files;
+        const inputFoto = document.getElementById('foto');
+        const inputKk = document.getElementById('kk');
+        const inputAkta = document.getElementById('akta');
+        const inputBayar = document.getElementById('bayar');
 
-        if (fileFoto) payload.data.foto = await fileToBase64(fileFoto);
-        if (fileKk) payload.data.kk = await fileToBase64(fileKk);
-        if (fileAkta) payload.data.akta = await fileToBase64(fileAkta);
-        if (fileBayar) payload.data.bayar = await fileToBase64(fileBayar);
+        // Kita pastikan elemennya ada, punya properti files, dan jumlah filenya lebih dari 0
+        if (inputFoto.files && inputFoto.files.length > 0) {
+          payload.data.foto = await fileToBase64(inputFoto.files);
+        }
+        if (inputKk.files && inputKk.files.length > 0) {
+          payload.data.kk = await fileToBase64(inputKk.files);
+        }
+        if (inputAkta.files && inputAkta.files.length > 0) {
+          payload.data.akta = await fileToBase64(inputAkta.files);
+        }
+        if (inputBayar.files && inputBayar.files.length > 0) {
+          payload.data.bayar = await fileToBase64(inputBayar.files);
+        }
 
         console.log("[DEBUG] Semua file berhasil diconvert ke Base64. Menghitung ukuran total muatan...");
         const payloadSize = JSON.stringify(payload).length;
         console.log(`[DEBUG] Ukuran total muatan data: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
         
-        if (payloadSize > 40 * 1024 * 1024) { // Limit Google Apps Script biasanya sekitar 50MB
+        if (payloadSize > 40 * 1024 * 1024) { 
           alert("⚠️ File terlalu besar! Total semua berkas melebihi batas 40MB. Mohon kompres gambar Anda.");
           resetLoader();
           return;
@@ -201,8 +210,6 @@
         resetLoader();
         return;
       }
-
-      console.log("[DEBUG] Mengirim data ke Google Apps Script...");
       
       fetch(API_URL, {
         method: "POST",
