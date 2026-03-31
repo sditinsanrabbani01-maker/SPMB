@@ -1,5 +1,5 @@
 // config.js
-const CONFIG_API_URL = "https://script.google.com/macros/s/AKfycbyE3fxDvK8d3HZR33oAFJ8b0IxAhbl2MHUQ1yiDcZamtor-7GtGqzWpdvk80ulN_q-VUQ/exec";
+const CONFIG_API_URL = "https://script.google.com/macros/s/AKfycbyeMLvc55wZjkUP9qOOZLgPHCr_3Jjxfh5gV1KT1qOAS2Dg3PXWZl8DCfmWangkiPmUcw/exec";
 const NAMA_SEKOLAH = "SDIT INSAN RABBANI";
 // Admin credentials are now stored in the Google Sheet (Settings sheet) for security.
 // Set the values in the Settings sheet with keys "admin_user" and "admin_pass".
