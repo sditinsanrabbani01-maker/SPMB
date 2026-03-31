@@ -132,29 +132,37 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycby54JErrLmy-w1d9Inc2YvUn1M2QTO4-5rOV0Shn0XTul3a_JsKp-49d8ggR_BMLSn1Dw/exec";
+    
+    // Fungsi konversi yang lebih tangguh
     async function fileToBase64(file) {
+      // Validasi: Apakah benar-benar file/blob?
+      if (!(file instanceof Blob)) {
+        console.error("[DEBUG] Objek yang diterima bukan file valid!", file);
+        return null; 
+      }
+
       return new Promise((resolve, reject) => {
-        console.log(`[DEBUG] Mulai membaca file: ${file.name} (${file.size} bytes)`);
+        console.log(`[DEBUG] Membaca file: ${file.name}`);
         const reader = new FileReader();
-        reader.readAsDataURL(file);
         
-        reader.onload = () => {
-          console.log(`[DEBUG] Berhasil membaca file: ${file.name}`);
-          resolve(reader.result);
-        };
-        
+        reader.onload = () => resolve(reader.result);
         reader.onerror = error => {
-          console.error(`[DEBUG] ERROR saat membaca file ${file.name}:`, error);
+          console.error(`[DEBUG] Error FileReader pada ${file.name}:`, error);
           reject(error);
         };
+        
+        reader.readAsDataURL(file);
       });
     }
 
     async function handleFormSubmit(formObj) {
-      document.getElementById('btnKirim').disabled = true;
-      document.getElementById('submitLoader').style.display = 'block';
+      const btn = document.getElementById('btnKirim');
+      const loader = document.getElementById('submitLoader');
       
-      console.log("[DEBUG] Memulai proses pengumpulan data form...");
+      btn.disabled = true;
+      loader.style.display = 'block';
+      
+      console.log("[DEBUG] Memulai validasi data form...");
       
       const payload = {
         action: "submitForm",
@@ -173,70 +181,81 @@
         }
       };
 
-      // Proses konversi file dengan Log Jelas & Validasi Ketat
       try {
-        const inputFoto = document.getElementById('foto');
-        const inputKk = document.getElementById('kk');
-        const inputAkta = document.getElementById('akta');
-        const inputBayar = document.getElementById('bayar');
+        // Ambil elemen input file
+        const inputs = {
+          foto: document.getElementById('foto'),
+          kk: document.getElementById('kk'),
+          akta: document.getElementById('akta'),
+          bayar: document.getElementById('bayar')
+        };
 
-        // Kita pastikan elemennya ada, punya properti files, dan jumlah filenya lebih dari 0
-        if (inputFoto.files && inputFoto.files.length > 0) {
-          payload.data.foto = await fileToBase64(inputFoto.files);
-        }
-        if (inputKk.files && inputKk.files.length > 0) {
-          payload.data.kk = await fileToBase64(inputKk.files);
-        }
-        if (inputAkta.files && inputAkta.files.length > 0) {
-          payload.data.akta = await fileToBase64(inputAkta.files);
-        }
-        if (inputBayar.files && inputBayar.files.length > 0) {
-          payload.data.bayar = await fileToBase64(inputBayar.files);
+        // Proses satu per satu dengan pengecekan ketat
+        for (const key in inputs) {
+          const inputElement = inputs[key];
+          if (inputElement && inputElement.files && inputElement.files.length > 0) {
+            const fileObj = inputElement.files;
+            console.log(`[DEBUG] Memproses input: ${key}, File: ${fileObj.name}`);
+            
+            const base64Result = await fileToBase64(fileObj);
+            if (base64Result) {
+              payload.data[key] = base64Result;
+            }
+          } else {
+            console.warn(`[DEBUG] Input ${key} kosong atau tidak ditemukan.`);
+          }
         }
 
-        console.log("[DEBUG] Semua file berhasil diconvert ke Base64. Menghitung ukuran total muatan...");
-        const payloadSize = JSON.stringify(payload).length;
-        console.log(`[DEBUG] Ukuran total muatan data: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
-        
-        if (payloadSize > 40 * 1024 * 1024) { 
-          alert("⚠️ File terlalu besar! Total semua berkas melebihi batas 40MB. Mohon kompres gambar Anda.");
-          resetLoader();
-          return;
-        }
+        console.log("[DEBUG] Cek ukuran final payload...");
+        const finalJson = JSON.stringify(payload);
+        console.log(`[DEBUG] Ukuran Payload: ${(finalJson.length / 1024).toFixed(2)} KB`);
+
+        // Kirim ke Backend
+        const response = await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors", // Tambahkan mode no-cors jika mengalami masalah CORS di beberapa browser
+          body: finalJson
+        });
+
+        // Karena mode no-cors tidak bisa membaca JSON response, 
+        // khusus untuk GitHub Pages ke GAS, kita gunakan mode default atau tangani errornya.
+        // Mari kita coba mode default dulu:
+        handleServerResponse(finalJson);
 
       } catch (e) {
-        console.error("[DEBUG] Proses konversi file gagal total!", e);
-        alert("Gagal membaca file! Detail error: " + e.message);
-        resetLoader();
-        return;
+        console.error("[DEBUG] CRITICAL ERROR:", e);
+        alert("Terjadi kesalahan! Lihat Console (F12) untuk detail.");
+        btn.disabled = false;
+        loader.style.display = 'none';
       }
-      
+    }
+
+    function handleServerResponse(jsonPayload) {
+      // Fungsi pengiriman ulang jika Fetch biasa gagal (Metode Standar)
       fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify(payload)
+        body: jsonPayload
       })
       .then(res => res.json())
       .then(response => {
-        console.log("[DEBUG] Menerima respon dari server:", response);
-        resetLoader();
+        document.getElementById('btnKirim').disabled = false;
+        document.getElementById('submitLoader').style.display = 'none';
+        
         if(response.success){
           document.getElementById('noRegText').innerText = response.regNo;
           document.getElementById('ppdbForm').classList.add('d-none');
           document.getElementById('alertSuccess').classList.remove('d-none');
+          window.scrollTo(0,0);
         } else {
-          alert("Gagal mendaftar: " + response.message);
+          alert("Gagal: " + response.message);
         }
-      }).catch(err => {
-        console.error("[DEBUG] Gagal terhubung ke Google Apps Script:", err);
-        resetLoader();
-        alert("Koneksi terputus atau server error! Cek konsol browser Anda.");
+      })
+      .catch(err => {
+        console.error("[DEBUG] Fetch Error:", err);
+        alert("Gagal mengirim data ke server. Pastikan Web App GAS sudah di-deploy sebagai 'Anyone'.");
+        document.getElementById('btnKirim').disabled = false;
+        document.getElementById('submitLoader').style.display = 'none';
       });
-    }
-
-    function resetLoader(){
-      document.getElementById('btnKirim').disabled = false;
-      document.getElementById('submitLoader').style.display = 'none';
-      console.log("[DEBUG] Status tombol dan loader di-reset.");
     }
   </script>
 </body>
