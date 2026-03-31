@@ -91,11 +91,11 @@ function setupSheet() {
     settingsSheet.appendRow(["hero_quote", "\"Wujudkan Generasi Qurani Sejak Dini Bersama Kami\""]);
   }
 
-  var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
-  if (paymentSheet.getLastRow() === 0) {
-    paymentSheet.appendRow(["Timestamp", "Nama", "Jumlah", "Status"]);
-    paymentSheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
-  }
+   var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
+   if (paymentSheet.getLastRow() === 0) {
+     paymentSheet.appendRow(["Tanggal", "Nama", "Nominal", "Konfirmasi"]);
+     paymentSheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
+   }
 }
 
 function handleSubmit(data) {

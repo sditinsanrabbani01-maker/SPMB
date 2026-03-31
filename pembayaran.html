@@ -59,9 +59,53 @@
             </div>
 
             <div class="mt-4">
-              <a href="form.html" class="btn btn-success btn-lg px-5">
-                <i class="fas fa-arrow-right me-2"></i>Lanjutkan ke Formulir Pendaftaran
-              </a>
+              <!-- Upload Section -->
+              <div id="uploadSection">
+                <h6 class="text-muted mb-3">Upload Bukti Pembayaran untuk Verifikasi Otomatis:</h6>
+                <div class="mb-3">
+                  <input type="file" id="buktiPembayaran" class="form-control" accept="image/*">
+                </div>
+                <button onclick="processPayment()" class="btn btn-success btn-lg px-5 mb-3" id="btnProcess">
+                  <i class="fas fa-upload me-2"></i>Konfirmasi Pembayaran
+                </div>
+                <div id="statusDiv"></div>
+              </div>
+              
+              <!-- Transaction Confirmation Section (initially hidden) -->
+              <div id="transactionSection" class="d-none">
+                <h5 class="mb-4">Pembayaran Berhasil Diproses!</h5>
+                <div class="card p-4">
+                  <div class="row">
+                    <div class="col-md-3">
+                      <strong>Tanggal:</strong>
+                    </div>
+                    <div class="col-md-9" id="transactionDate"></div>
+                  </div>
+                  <div class="row mt-2">
+                    <div class="col-md-3">
+                      <strong>Nama:</strong>
+                    </div>
+                    <div class="col-md-9" id="transactionName"></div>
+                  </div>
+                  <div class="row mt-2">
+                    <div class="col-md-3">
+                      <strong>Nominal:</strong>
+                    </div>
+                    <div class="col-md-9" id="transactionAmount"></div>
+                  </div>
+                  <div class="row mt-2">
+                    <div class="col-md-3">
+                      <strong>Status:</strong>
+                    </div>
+                    <div class="col-md-9" id="transactionStatus"></div>
+                  </div>
+                </div>
+                <div class="mt-4">
+                  <a href="form.html" class="btn btn-success btn-lg px-5">
+                    <i class="fas fa-arrow-right me-2"></i>Lanjutkan ke Formulir Pendaftaran
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -76,6 +120,171 @@
 </div>
 
 
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+
+  <script>
+    // Memastikan API_URL terbaca dari config.js
+    const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
+
+    function showLoadingPopup(message) {
+      const popup = document.createElement('div');
+      popup.id = 'loadingPopup';
+      popup.innerHTML = `
+        <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">${message}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
+
+    function hideLoadingPopup() {
+      const popup = document.getElementById('loadingPopup');
+      if (popup) popup.remove();
+    }
+
+    function showSuccessPopup(message, callback) {
+      const popup = document.createElement('div');
+      popup.id = 'successPopup';
+      popup.innerHTML = `
+        <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-body text-center">
+                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                <p class="mt-2">${message}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+      setTimeout(() => {
+        popup.remove();
+        if (callback) callback();
+      }, 2000);
+    }
+
+    function showErrorPopup(message) {
+      const popup = document.createElement('div');
+      popup.id = 'errorPopup';
+      popup.innerHTML = `
+        <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-body text-center">
+                <i class="fas fa-times-circle text-danger" style="font-size: 3rem;"></i>
+                <p class="mt-2">${message}</p>
+                <button class="btn btn-danger mt-2" onclick="this.closest('.modal').parentElement.remove()">Tutup</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
+
+    async function processPayment() {
+      const fileInput = document.getElementById('buktiPembayaran');
+      const statusDiv = document.getElementById('statusDiv');
+      const btn = document.getElementById('btnProcess');
+      const uploadSection = document.getElementById('uploadSection');
+      const transactionSection = document.getElementById('transactionSection');
+      if (!fileInput.files[0]) {
+        showErrorPopup('Pilih file gambar terlebih dahulu.');
+        return;
+      }
+      btn.disabled = true;
+      uploadSection.classList.add('d-none');
+      transactionSection.classList.remove('d-none');
+      document.getElementById('transactionDate').textContent = new Date().toLocaleString();
+      document.getElementById('transactionName').textContent = 'Memproses...';
+      document.getElementById('transactionAmount').textContent = 'Memproses...';
+      document.getElementById('transactionStatus').textContent = 'Memproses...';
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(fileInput.files[0], 'ind');
+        console.log('Extracted text:', text);
+
+        // Parse amount - look for Rp followed by number or just numbers
+        const rpMatch = text.match(/Rp\s*(\d{1,3}(?:\.\d{3})*)/i);
+        const numMatch = text.match(/(\d{1,3}(?:\.\d{3})*)/g);
+        let amount = 0;
+        console.log('Rp match:', rpMatch);
+        console.log('Num matches:', numMatch);
+        if (rpMatch) {
+          amount = parseInt(rpMatch[1].replace(/\./g, ''));
+        } else if (numMatch) {
+          // Filter numbers >=100000
+          const validNums = numMatch.map(n => parseInt(n.replace(/\./g, ''))).filter(n => n >= 100000);
+          console.log('Valid nums:', validNums);
+          if (validNums.length > 0) {
+            amount = Math.max(...validNums);
+          }
+        }
+        console.log('Final amount:', amount);
+
+        // Parse name (look for sender name patterns)
+        const namePatterns = [
+          /Nama Pengirim\s*([^\n]+)/i,
+          /Sumber Dana\s*([^\n]+)/i,
+          /Nama\s*:\s*([^\n]+)/i,
+          /Atas Nama\s*:\s*([^\n]+)/i
+        ];
+        let name = 'Unknown';
+        for (const pattern of namePatterns) {
+          const match = text.match(pattern);
+          if (match) {
+            name = match[1].trim();
+            break;
+          }
+        }
+
+        if (amount >= 100000) {
+          // Convert image to base64
+          const reader = new FileReader();
+          reader.onload = async function(e) {
+            const base64 = e.target.result.split(',')[1];
+            // Save to GAS with image
+            const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name }) });
+            const result = await res.json();
+            if (result.success) {
+              document.getElementById('transactionName').textContent = name;
+              document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString();
+              document.getElementById('transactionStatus').textContent = 'Dikonfirmasi';
+            } else {
+              document.getElementById('transactionName').textContent = 'Gagal';
+              document.getElementById('transactionAmount').textContent = '-';
+              document.getElementById('transactionStatus').textContent = 'Gagal disimpan';
+              showErrorPopup('Gagal menyimpan data pembayaran.');
+            }
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        } else {
+          document.getElementById('transactionName').textContent = '-';
+          document.getElementById('transactionAmount').textContent = '-';
+          document.getElementById('transactionStatus').textContent = 'Nominal tidak cukup';
+          showErrorPopup('Jumlah pembayaran tidak mencukupi (minimal Rp 100.000).');
+        }
+      } catch (error) {
+        console.error(error);
+        document.getElementById('transactionName').textContent = 'Error';
+        document.getElementById('transactionAmount').textContent = '-';
+        document.getElementById('transactionStatus').textContent = 'Error';
+        showErrorPopup('Gagal memproses gambar: ' + error.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
