@@ -239,7 +239,7 @@ function handleSavePayment(amount, name, status, image, filename) {
 
   if (image && filename) {
     // Save image to Drive
-    var folder = DriveApp.getFolderById("YOUR_FOLDER_ID"); // Replace with your Drive folder ID
+    var folder = DriveApp.getFolderById("1X68-LaYIrVPni2utMXLB5AxGK2VmTGo5");
     var fileName = name + " - Konfirmasi." + filename.split('.').pop();
     var blob = Utilities.newBlob(Utilities.base64Decode(image), 'image/jpeg', fileName);
     folder.createFile(blob);
