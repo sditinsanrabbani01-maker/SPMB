@@ -22,8 +22,12 @@
       <h1 class="display-4 fw-bold" id="heroTitle">Selamat Datang di SPMB SDIT INSAN RABBANI Online</h1>
       <p class="lead" id="heroSub">Tahun Ajaran 2026/2027</p>
       <p class="fst-italic" id="heroQuote">"Wujudkan Generasi Qurani Sejak Dini Bersama Kami"</p>
-      <div class="mt-4">
-        <a href="pembayaran.html" id="regButton" class="btn btn-lg btn-light fw-bold mx-2 px-4 shadow-sm"><i class="fas fa-user-plus me-2"></i>Daftar Sekarang</a>
+      <div id="registrationAlert" class="alert alert-warning mt-4 d-none" role="alert">
+        <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Pendaftaran Sedang Ditutup</h5>
+        <p class="mb-0">Pendaftaran SPMB akan dibuka pada waktu yang telah ditentukan. Silakan cek kembali nanti.</p>
+      </div>
+      <div class="mt-4" id="buttonContainer">
+        <a href="form.html" id="regButton" class="btn btn-lg btn-light fw-bold mx-2 px-4 shadow-sm"><i class="fas fa-user-plus me-2"></i>Daftar Sekarang</a>
         <a href="cek.html" class="btn btn-lg btn-outline-light fw-bold mx-2 px-4"><i class="fas fa-search me-2"></i>Cek Pendaftaran</a>
       </div>
     </div>
@@ -175,11 +179,14 @@
         if (data.hero_text) document.getElementById('heroTitle').innerText = data.hero_text;
         if (data.hero_subtext) document.getElementById('heroSub').innerText = data.hero_subtext;
         if (data.hero_quote) document.getElementById('heroQuote').innerText = data.hero_quote;
-        const regButton = document.getElementById('regButton');
-        if (data.show_registration === 'false') {
-          regButton.style.display = 'none';
+        const registrationAlert = document.getElementById('registrationAlert');
+        const buttonContainer = document.getElementById('buttonContainer');
+        if (data.registration_open === 'false') {
+          registrationAlert.classList.remove('d-none');
+          buttonContainer.style.display = 'none';
         } else {
-          regButton.style.display = 'inline-block';
+          registrationAlert.classList.add('d-none');
+          buttonContainer.style.display = 'block';
         }
       } catch (e) {
         console.log('Failed to load dynamic content');

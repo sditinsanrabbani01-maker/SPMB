@@ -50,12 +50,7 @@
                         <label class="form-check-label" for="registration_open">
                             Buka Pendaftaran
                         </label>
-                    </div>
-                    <div class="form-check form-switch mt-2">
-                        <input class="form-check-input" type="checkbox" id="show_registration">
-                        <label class="form-check-label" for="show_registration">
-                            Tampilkan Tombol Pendaftaran
-                        </label>
+                        <small class="form-text text-muted">Aktifkan untuk membuka pendaftaran. Jika ditutup, pesan akan ditampilkan di halaman utama.</small>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -215,19 +210,16 @@
         const result = await res.json();
         const data = result.data;
         document.getElementById('registration_open').checked = data.registration_open === 'true';
-        document.getElementById('show_registration').checked = data.show_registration === 'true';
         document.getElementById('hero_text').value = data.hero_text || '';
         document.getElementById('hero_subtext').value = data.hero_subtext || '';
         document.getElementById('hero_quote').value = data.hero_quote || '';
     }
     async function saveSettings() {
         const registration_open = document.getElementById('registration_open').checked ? 'true' : 'false';
-        const show_registration = document.getElementById('show_registration').checked ? 'true' : 'false';
         const hero_text = document.getElementById('hero_text').value;
         const hero_subtext = document.getElementById('hero_subtext').value;
         const hero_quote = document.getElementById('hero_quote').value;
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "registration_open", value: registration_open }) });
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "show_registration", value: show_registration }) });
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_text", value: hero_text }) });
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_subtext", value: hero_subtext }) });
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_quote", value: hero_quote }) });
