@@ -233,9 +233,18 @@ function handleGetRegistrantDetails(noReg) {
   return null;
 }
 
-function handleSavePayment(amount, name, status) {
+function handleSavePayment(amount, name, status, image, filename) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pembayaran");
   sheet.appendRow([new Date(), name, amount, status]);
+
+  if (image && filename) {
+    // Save image to Drive
+    var folder = DriveApp.getFolderById("YOUR_FOLDER_ID"); // Replace with your Drive folder ID
+    var fileName = name + " - Konfirmasi." + filename.split('.').pop();
+    var blob = Utilities.newBlob(Utilities.base64Decode(image), 'image/jpeg', fileName);
+    folder.createFile(blob);
+  }
+
   return true;
 }
 

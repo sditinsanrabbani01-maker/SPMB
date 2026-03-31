@@ -117,21 +117,28 @@
         statusDiv.innerHTML = `<div class="alert alert-info">Jumlah: Rp ${amount.toLocaleString()}, Nama: ${name}</div>`;
 
         if (amount >= 100000) {
-          // Save to GAS
-          const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed" }) });
-          const result = await res.json();
-          if (result.success) {
-            statusDiv.innerHTML = '<div class="alert alert-success">Pembayaran dikonfirmasi otomatis!</div>';
-            document.getElementById('formLink').style.display = 'block';
-          } else {
-            statusDiv.innerHTML = '<div class="alert alert-danger">Gagal menyimpan data pembayaran.</div>';
-          }
+          // Convert image to base64
+          const reader = new FileReader();
+          reader.onload = async function(e) {
+            const base64 = e.target.result.split(',')[1];
+            // Save to GAS with image
+            const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name }) });
+            const result = await res.json();
+            if (result.success) {
+              statusDiv.innerHTML = '<div class="alert alert-success">Pembayaran dikonfirmasi otomatis! File disimpan ke Drive.</div>';
+              document.getElementById('formLink').style.display = 'block';
+            } else {
+              statusDiv.innerHTML = '<div class="alert alert-danger">Gagal menyimpan data pembayaran.</div>';
+            }
+            btn.disabled = false;
+          };
+          reader.readAsDataURL(fileInput.files[0]);
         } else {
           statusDiv.innerHTML = '<div class="alert alert-danger">Jumlah pembayaran tidak mencukupi (minimal Rp 100.000).</div>';
+          btn.disabled = false;
         }
       } catch (error) {
         statusDiv.innerHTML = '<div class="alert alert-danger">Gagal memproses gambar: ' + error.message + '</div>';
-      } finally {
         btn.disabled = false;
       }
     }
