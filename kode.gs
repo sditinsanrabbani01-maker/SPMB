@@ -58,8 +58,22 @@ function doPost(e) {
       return createResponse({ success: save });
     }
 
-    return createResponse({ success: false, message: "Aksi tidak dikenal!" });
+    // 9. Aksi Verifikasi Login
+    if (action === "verifyLogin") {
+      var username = requestData.username;
+      var password = requestData.password;
+      var settings = handleGetSettings();
+      var valid = (settings.admin_user === username && settings.admin_pass === password);
+      return createResponse({ success: valid });
+    }
 
+    // 10. Aksi Ambil Riwayat Pembayaran
+    if (action === "getPaymentHistory") {
+      var history = handleGetPaymentHistory();
+      return createResponse({ success: true, data: history });
+    }
+
+    return createResponse({ success: false, message: "Aksi tidak dikenal!" });
   } catch (error) {
     return createResponse({ success: false, message: "Server Error: " + error.toString() });
   }
@@ -74,9 +88,9 @@ function setupSheet() {
   var sheet = ss.getSheetByName("Data_SPMB") || ss.insertSheet("Data_SPMB");
   if (sheet.getLastRow() === 0) {
     var headers = ["Timestamp", "No Registrasi", "Nama Lengkap", "NIK", "NISN", "Tempat Lahir", "Tanggal Lahir", "Jenis Kelamin", "ABK", "Alamat",
-                   "Nama Ayah", "Pekerjaan Ayah", "Alamat Ayah", "Gaji Ayah", "HP Ayah",
-                   "Nama Ibu", "Pekerjaan Ibu", "Alamat Ibu", "Gaji Ibu", "HP Ibu",
-                   "Nama Sekolah", "NPSN", "Alamat Sekolah", "Status"];
+                    "Nama Ayah", "Pekerjaan Ayah", "Alamat Ayah", "Gaji Ayah", "HP Ayah",
+                    "Nama Ibu", "Pekerjaan Ibu", "Alamat Ibu", "Gaji Ibu", "HP Ibu",
+                    "Nama Sekolah", "NPSN", "Alamat Sekolah", "Status"];
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#d9ead3");
   }
@@ -89,13 +103,24 @@ function setupSheet() {
     settingsSheet.appendRow(["hero_text", "Selamat Datang di SPMB SDIT INSAN RABBANI Online"]);
     settingsSheet.appendRow(["hero_subtext", "Tahun Ajaran 2026/2027"]);
     settingsSheet.appendRow(["hero_quote", "\"Wujudkan Generasi Qurani Sejak Dini Bersama Kami\""]);
+    // Default admin credentials (can be changed via admin dashboard)
+    settingsSheet.appendRow(["admin_user", "admin"]);
+    settingsSheet.appendRow(["admin_pass", "admin123"]);
   }
 
-   var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
-   if (paymentSheet.getLastRow() === 0) {
-     paymentSheet.appendRow(["Tanggal", "Nama", "Nominal", "Konfirmasi"]);
-     paymentSheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
-   }
+  var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
+  if (paymentSheet.getLastRow() === 0) {
+    paymentSheet.appendRow(["Tanggal", "Nama", "Nominal", "Konfirmasi"]);
+    paymentSheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
+  }
+
+  // CP/Contact Person sheet for WhatsApp notifications
+  var cpSheet = ss.getSheetByName("CP/Contact Person") || ss.insertSheet("CP/Contact Person");
+  if (cpSheet.getLastRow() === 0) {
+    var cpHeaders = ["No Registrasi", "Nama", "Nomor Telepon", "Keterangan"];
+    cpSheet.appendRow(cpHeaders);
+    cpSheet.getRange(1, 1, 1, cpHeaders.length).setFontWeight("bold").setBackground("#d9ead3");
+  }
 }
 
 function handleSubmit(data) {
@@ -104,16 +129,43 @@ function handleSubmit(data) {
   var regNo = "SPMB-" + year + "-" + ("0000" + sheet.getLastRow()).slice(-4);
 
   sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.abk, data.alamat,
-                   data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
-                   data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
-                   data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
+                    data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
+                    data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
+                    data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
 
-  // Send WhatsApp notification
+  // Send WhatsApp notification to parent
   var whatsappNumber = data.hpAyah || data.hpIbu;
   if (whatsappNumber) {
     var message = "Pendaftaran SPMB SDIT Insan Rabbani berhasil!\n\nNo Registrasi: " + regNo + "\nNama: " + data.nama + "\nStatus: MENUNGGU\n\nSilakan cek status pendaftaran secara berkala.";
     sendWhatsAppMessage(whatsappNumber, message);
   }
+  
+  // Send WhatsApp notification to CP/Contact Person
+  var cpNumbers = getCPContactNumbers();
+  if (cpNumbers.length > 0) {
+    var cpMessage = "PENDAFTARAN BARU SPMB SDIT INSAN RABBANI\n\nNo Registrasi: " + regNo + "\nNama: " + data.nama + "\nNama Ayah: " + data.namaAyah + "\nHP Ayah: " + data.hpAyah + "\nNama Ibu: " + data.namaIbu + "\nHP Ibu: " + data.hpIbu + "\nStatus: MENUNGGU\n\nSilakan cek data pendaftaran di dashboard admin.";
+    for (var i = 0; i < cpNumbers.length; i++) {
+      sendWhatsAppMessage(cpNumbers[i], cpMessage);
+    }
+  }
+  
+  // Send Email notification
+  var emailTo = data.hpAyah || data.hpIbu; // Using WhatsApp number as placeholder - in real scenario, we'd have email field
+  // For now, we'll skip email if no email field exists in the form
+  // In a production system, you would add email fields to the form and use them here
+  // var emailTo = data.emailAyah || data.emailIbu;
+  // if (emailTo) {
+  //   var emailSubject = "Pendaftaran SPMB SDIT Insan Rabbani Berhasil";
+  //   var emailBody = "Yth. Bapak/Ibu " + data.namaAyah + ",\n\n" +
+  //                   "Pendaftaran anak Anda atas nama " + data.nama + " telah berhasil diterima.\n\n" +
+  //                   "No Registrasi: " + regNo + "\n" +
+  //                   "Nama: " + data.nama + "\n" +
+  //                   "Status: MENUNGGU\n\n" +
+  //                   "Silakan cek status pendaftaran secara berkala melalui halaman cek pendaftaran.\n\n" +
+  //                   "Terima kasih.\n" +
+  //                   "Tim SPMB SDIT Insan Rabbani";
+  //   sendEmailNotification(emailTo, emailSubject, emailBody);
+  // }
 
   return regNo;
 }
@@ -142,12 +194,29 @@ function handleUpdateStatus(noReg, status) {
       var oldStatus = rows[i][23];
       sheet.getRange(i + 1, 24).setValue(status); // Kolom Status sekarang di posisi 24 (index 23)
 
-      // Send WhatsApp if status changed
+      // Send WhatsApp notification if status changed
       if (oldStatus !== status) {
-        var whatsappNumber = rows[i][13] || rows[i][18]; // HP Ayah or Ibu
+        // Send to registrant/parent
+        var whatsappNumber = getCPContactNumber(noReg);
+        var message = "Status pendaftaran Anda telah berubah.\n\nNo Registrasi: " + noReg + "\nNama: " + rows[i][2] + "\nStatus Sebelumnya: " + oldStatus + "\nStatus Baru: " + status + "\n\nSilakan cek status pendaftaran secara berkala.";
+        
         if (whatsappNumber) {
-          var message = "Update Status Pendaftaran SPMB SDIT Insan Rabbani\n\nNo Registrasi: " + noReg + "\nNama: " + rows[i][2] + "\nStatus Baru: " + status + "\n\nTerima kasih.";
           sendWhatsAppMessage(whatsappNumber, message);
+        } else {
+          // Fallback to parent's phone number
+          var fallbackNumber = rows[i][14] || rows[i][19]; // HP Ayah or Ibu
+          if (fallbackNumber) {
+            sendWhatsAppMessage(fallbackNumber, message);
+          }
+        }
+        
+        // Send to CP/Contact Person
+        var cpNumbers = getCPContactNumbers();
+        if (cpNumbers.length > 0) {
+          var cpMessage = "PERUBAHAN STATUS PENDAFTARAN SPMB SDIT INSAN RABBANI\n\nNo Registrasi: " + noReg + "\nNama: " + rows[i][2] + "\nStatus Sebelumnya: " + oldStatus + "\nStatus Baru: " + status + "\n\nSilakan cek data pendaftaran di dashboard admin.";
+          for (var j = 0; j < cpNumbers.length; j++) {
+            sendWhatsAppMessage(cpNumbers[j], cpMessage);
+          }
         }
       }
 
@@ -157,6 +226,47 @@ function handleUpdateStatus(noReg, status) {
   return false;
 }
 
+// Helper function to get WhatsApp number from CP/Contact Person sheet for specific registrant
+function getCPContactNumber(noReg) {
+  try {
+    var cpSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CP/Contact Person");
+    if (!cpSheet) return null;
+    
+    var rows = cpSheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === noReg) { // No Registrasi match
+        var phone = rows[i][2]; // Nomor Telepon
+        if (phone) {
+          return normalizeWhatsAppNumber(phone.toString());
+        }
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Helper function to get all CP/Contact Person WhatsApp numbers
+function getCPContactNumbers() {
+  try {
+    var cpSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CP/Contact Person");
+    if (!cpSheet) return [];
+    
+    var rows = cpSheet.getDataRange().getValues();
+    var numbers = [];
+    for (var i = 1; i < rows.length; i++) {
+      var phone = rows[i][2]; // Nomor Telepon
+      if (phone) {
+        numbers.push(normalizeWhatsAppNumber(phone.toString()));
+      }
+    }
+    return numbers;
+  } catch (e) {
+    return [];
+  }
+}
+
 function handleCekStatus(keyword) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
   var rows = sheet.getDataRange().getValues();
@@ -164,7 +274,29 @@ function handleCekStatus(keyword) {
     // Cek berdasarkan No Registrasi, NIK, atau NISN
     if (rows[i][1] === keyword || rows[i][3].toString() === keyword || rows[i][4].toString() === keyword) {
       return {
+        timestamp: rows[i][0],
+        noReg: rows[i][1],
         nama: rows[i][2],
+        nik: rows[i][3],
+        nisn: rows[i][4],
+        tempatLahir: rows[i][5],
+        tanggalLahir: rows[i][6],
+        jk: rows[i][7],
+        abk: rows[i][8],
+        alamat: rows[i][9],
+        namaAyah: rows[i][10],
+        pekerjaanAyah: rows[i][11],
+        alamatAyah: rows[i][12],
+        gajiAyah: rows[i][13],
+        hpAyah: rows[i][14],
+        namaIbu: rows[i][15],
+        pekerjaanIbu: rows[i][16],
+        alamatIbu: rows[i][17],
+        gajiIbu: rows[i][18],
+        hpIbu: rows[i][19],
+        namaSekolah: rows[i][20],
+        npsn: rows[i][21],
+        alamatSekolah: rows[i][22],
         status: rows[i][23]
       };
     }
@@ -237,11 +369,23 @@ function handleSavePayment(amount, name, status, image, filename) {
   sheet.appendRow([new Date(), name, amount, status]);
 
   if (image && filename) {
-    // Save image to Drive
-    var folder = DriveApp.getFolderById("1X68-LaYIrVPni2utMXLB5AxGK2VmTGo5");
-    var fileName = name + " - Konfirmasi." + filename.split('.').pop();
+    // Save image to Drive in student-specific folder
+    var rootFolder = DriveApp.getFolderById("1X68-LaYIrVPni2utMXLB5AxGK2VmTGo5");
+    var studentFolderName = name.replace(/[\\\/:*?"<>|]/g, '_'); // Remove invalid folder name characters
+    var studentFolder;
+    
+    // Check if student folder already exists
+    var folders = rootFolder.getFoldersByName(studentFolderName);
+    if (folders.hasNext()) {
+      studentFolder = folders.next();
+    } else {
+      // Create new student folder
+      studentFolder = rootFolder.createFolder(studentFolderName);
+    }
+    
+    var fileName = "Konfirmasi." + filename.split('.').pop();
     var blob = Utilities.newBlob(Utilities.base64Decode(image), 'image/jpeg', fileName);
-    folder.createFile(blob);
+    studentFolder.createFile(blob);
   }
 
   return true;
@@ -278,4 +422,32 @@ function sendWhatsAppMessage(number, message) {
   } catch (e) {
     return false;
   }
+}
+
+function sendEmailNotification(to, subject, body) {
+  try {
+    MailApp.sendEmail({
+      to: to,
+      subject: subject,
+      body: body
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function handleGetPaymentHistory() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pembayaran");
+  var rows = sheet.getDataRange().getValues();
+  var result = [];
+  for (var i = 1; i < rows.length; i++) {
+    result.push({
+      timestamp: rows[i][0],
+      name: rows[i][1],
+      amount: rows[i][2],
+      status: rows[i][3]
+    });
+  }
+  return result;
 }
