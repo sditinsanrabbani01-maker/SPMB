@@ -101,21 +101,26 @@
 
       try {
         const { data: { text } } = await Tesseract.recognize(fileInput.files[0], 'ind');
+        console.log('Extracted text:', text);
         statusDiv.innerHTML = '<div class="alert alert-info">Mengekstrak teks: ' + text.substring(0, 100) + '...</div>';
 
         // Parse amount - look for Rp followed by number or just numbers
         const rpMatch = text.match(/Rp\s*(\d{1,3}(?:\.\d{3})*)/i);
         const numMatch = text.match(/(\d{1,3}(?:\.\d{3})*)/g);
         let amount = 0;
+        console.log('Rp match:', rpMatch);
+        console.log('Num matches:', numMatch);
         if (rpMatch) {
           amount = parseInt(rpMatch[1].replace(/\./g, ''));
         } else if (numMatch) {
           // Filter numbers >=100000
           const validNums = numMatch.map(n => parseInt(n.replace(/\./g, ''))).filter(n => n >= 100000);
+          console.log('Valid nums:', validNums);
           if (validNums.length > 0) {
             amount = Math.max(...validNums);
           }
         }
+        console.log('Final amount:', amount);
 
         // Parse name (simple, look for common patterns)
         const nameMatch = text.match(/Nama\s*:\s*([^\n]+)/i) || text.match(/Atas\s*Nama\s*:\s*([^\n]+)/i);
