@@ -106,6 +106,21 @@ function setupSheet() {
     // Default admin credentials (can be changed via admin dashboard)
     settingsSheet.appendRow(["admin_user", "admin"]);
     settingsSheet.appendRow(["admin_pass", "admin123"]);
+  } else {
+    // Ensure admin credentials exist even if sheet already has data
+    var rows = settingsSheet.getDataRange().getValues();
+    var hasAdminUser = false;
+    var hasAdminPass = false;
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === "admin_user") hasAdminUser = true;
+      if (rows[i][0] === "admin_pass") hasAdminPass = true;
+    }
+    if (!hasAdminUser) {
+      settingsSheet.appendRow(["admin_user", "admin"]);
+    }
+    if (!hasAdminPass) {
+      settingsSheet.appendRow(["admin_pass", "admin123"]);
+    }
   }
 
   var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
