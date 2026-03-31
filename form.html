@@ -12,6 +12,7 @@
     .btn-gradient { background: linear-gradient(135deg, #00B4DB 0%, #0083B0 100%); color: white; border: none; font-weight: bold; }
     .loader { display: none; border: 4px solid #f3f3f3; border-top: 4px solid #00B4DB; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .form-label { font-weight: 600; color: #444; }
   </style>
 </head>
 <body>
@@ -27,18 +28,18 @@
             <div class="col-md-6">
               <h6><b>📂 Berkas yang Disiapkan:</b></h6>
               <ul>
-                <li>Foto siswa terbaru</li>
+                <li>Pas Foto siswa terbaru</li>
                 <li>Kartu Keluarga (KK)</li>
                 <li>Akta Kelahiran</li>
-                <li>Bukti pembayaran</li>
+                <li>Bukti pembayaran pendaftaran</li>
               </ul>
             </div>
             <div class="col-md-6">
               <h6><b>⚠️ Ketentuan:</b></h6>
               <ul>
-                <li>Usia sesuai ketentuan sekolah</li>
-                <li>Berkas harus jelas & terbaca</li>
-                <li>Nomor WhatsApp wajib aktif</li>
+                <li>Pastikan semua data diisi dengan benar</li>
+                <li>Berkas harus jelas (tidak blur)</li>
+                <li>Gunakan format Gambar (JPG/PNG) atau PDF</li>
               </ul>
             </div>
           </div>
@@ -48,11 +49,11 @@
           <div class="card-body">
             <h3 class="text-center fw-bold mb-4" style="color: #0083B0;">Formulir Pendaftaran</h3>
             
-            <form id="SPMBForm" onsubmit="handleFormSubmit(this); return false;">
+            <form id="SPMBForm" onsubmit="handleFormSubmit(); return false;">
               <h5 class="text-secondary mb-3"><i class="fas fa-user me-2"></i>Data Siswa</h5>
               <div class="mb-3">
                 <label class="form-label">Nama Lengkap *</label>
-                <input type="text" id="nama" class="form-control" required>
+                <input type="text" id="nama" class="form-control" placeholder="Sesuai Akta Kelahiran" required>
               </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
@@ -83,12 +84,8 @@
 
               <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-users me-2"></i>Data Orang Tua</h5>
               <div class="row">
-                <div class="col-md-6 mb-3"><label class="form-label">Nama Ayah *</label><input type="text" id="ayah" class="form-control" required></div>
-                <div class="col-md-6 mb-3"><label class="form-label">Pekerjaan Ayah *</label><input type="text" id="pekerjaanAyah" class="form-control" required></div>
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3"><label class="form-label">Nama Ibu *</label><input type="text" id="ibu" class="form-control" required></div>
-                <div class="col-md-6 mb-3"><label class="form-label">Pekerjaan Ibu *</label><input type="text" id="pekerjaanIbu" class="form-control" required></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Data Ayah (Nama & Pekerjaan) *</label><input type="text" id="ayah" class="form-control" placeholder="Contoh: Ahmad - Wiraswasta" required></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Data Ibu (Nama & Pekerjaan) *</label><input type="text" id="ibu" class="form-control" placeholder="Contoh: Siti - Guru" required></div>
               </div>
 
               <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-phone me-2"></i>Kontak</h5>
@@ -97,23 +94,22 @@
                 <input type="tel" id="hp" class="form-control" required placeholder="08xxxxxxxxxx">
               </div>
 
-              <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-file-upload me-2"></i>Upload Berkas (Gambar/PDF)</h5>
+              <h5 class="text-secondary mt-4 mb-3"><i class="fas fa-file-upload me-2"></i>Upload Berkas</h5>
               <div class="row">
-                <div class="col-md-6 mb-3"><label class="form-label">Pas Foto Siswa *</label><input type="file" id="foto" class="form-control" required accept="image/*,.pdf"></div>
-                <div class="col-md-6 mb-3"><label class="form-label">Kartu Keluarga (KK) *</label><input type="file" id="kk" class="form-control" required accept="image/*,.pdf"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Pas Foto *</label><input type="file" id="foto" class="form-control" required accept="image/*,.pdf"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Kartu Keluarga *</label><input type="file" id="kk" class="form-control" required accept="image/*,.pdf"></div>
                 <div class="col-md-6 mb-3"><label class="form-label">Akta Kelahiran *</label><input type="file" id="akta" class="form-control" required accept="image/*,.pdf"></div>
-                <div class="col-md-6 mb-3"><label class="form-label">Bukti Pembayaran *</label><input type="file" id="bayar" class="form-control" required accept="image/*,.pdf"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Bukti Bayar *</label><input type="file" id="bayar" class="form-control" required accept="image/*,.pdf"></div>
               </div>
 
-              <hr class="my-4">
-              <div class="text-center mb-4">
+              <div class="text-center my-4">
                 <h6 class="text-success fw-bold">🚀 Ayo Daftar Sekarang!</h6>
                 <p class="fst-italic small">“Wujudkan generasi Qurani sejak dini bersama kami”</p>
               </div>
               
               <div class="d-flex align-items-center justify-content-between">
                 <div class="loader" id="submitLoader"></div>
-                <button type="submit" id="btnKirim" class="btn btn-gradient px-4 py-2">Kirim Pendaftaran</button>
+                <button type="submit" id="btnKirim" class="btn btn-gradient px-5 py-2">Kirim Pendaftaran</button>
               </div>
             </form>
             
@@ -121,7 +117,7 @@
               <h5><i class="fas fa-check-circle me-2"></i>Pendaftaran Berhasil!</h5>
               <p>Nomor Registrasi Anda:</p>
               <h3 class="fw-bold" id="noRegText" style="color: #11998E;"></h3>
-              <p class="mb-0 small">Catat nomor di atas untuk cek status pendaftaran secara berkala.</p>
+              <p class="mb-0 small">Simpan/Screenshot nomor ini untuk cek status di menu Cek Pendaftaran.</p>
             </div>
             
           </div>
@@ -130,8 +126,10 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
-    const API_URL = "MASUKKAN_URL_WEB_APP_GAS_KAMU";
+    // Memastikan API_URL terbaca dari config.js
+    const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
 
     async function fileToBase64(file) {
       return new Promise((resolve, reject) => {
@@ -142,9 +140,12 @@
       });
     }
 
-    async function handleFormSubmit(formObj) {
-      document.getElementById('btnKirim').disabled = true;
-      document.getElementById('submitLoader').style.display = 'block';
+    async function handleFormSubmit() {
+      const btn = document.getElementById('btnKirim');
+      const loader = document.getElementById('submitLoader');
+      
+      btn.disabled = true;
+      loader.style.display = 'block';
       
       const payload = {
         action: "submitForm",
@@ -157,47 +158,44 @@
           alamat: document.getElementById('alamat').value,
           hp: document.getElementById('hp').value,
           ayah: document.getElementById('ayah').value,
-          pekerjaanAyah: document.getElementById('pekerjaanAyah').value,
-          ibu: document.getElementById('ibu').value,
-          pekerjaanIbu: document.getElementById('pekerjaanIbu').value
+          ibu: document.getElementById('ibu').value
         }
       };
 
-      // Konversi file jika diisi
-      try {
-        if(document.getElementById('foto').files) payload.data.foto = await fileToBase64(document.getElementById('foto').files);
-        if(document.getElementById('kk').files) payload.data.kk = await fileToBase64(document.getElementById('kk').files);
-        if(document.getElementById('akta').files) payload.data.akta = await fileToBase64(document.getElementById('akta').files);
-        if(document.getElementById('bayar').files) payload.data.bayar = await fileToBase64(document.getElementById('bayar').files);
-      } catch (e) {
-        alert("Gagal membaca file!");
-        resetLoader();
-        return;
-      }
+       try {
+         // PERBAIKAN: Mengambil file pertama dari FileList
+         const fFoto = document.getElementById('foto').files[0];
+         const fKk = document.getElementById('kk').files[0];
+         const fAkta = document.getElementById('akta').files[0];
+         const fBayar = document.getElementById('bayar').files[0];
 
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(response => {
-        resetLoader();
-        if(response.success){
-          document.getElementById('noRegText').innerText = response.regNo;
+         if(fFoto) payload.data.foto = await fileToBase64(fFoto);
+         if(fKk) payload.data.kk = await fileToBase64(fKk);
+         if(fAkta) payload.data.akta = await fileToBase64(fAkta);
+         if(fBayar) payload.data.bayar = await fileToBase64(fBayar);
+
+        const response = await fetch(URL_GAS, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+
+        if(result.success){
+          document.getElementById('noRegText').innerText = result.regNo;
           document.getElementById('SPMBForm').classList.add('d-none');
           document.getElementById('alertSuccess').classList.remove('d-none');
+          window.scrollTo(0,0);
         } else {
-          alert("Gagal mendaftar: " + response.message);
+          alert("Gagal: " + result.message);
         }
-      }).catch(err => {
-        resetLoader();
-        alert("Koneksi terputus atau server error!");
-      });
-    }
-
-    function resetLoader(){
-      document.getElementById('btnKirim').disabled = false;
-      document.getElementById('submitLoader').style.display = 'none';
+      } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan koneksi atau ukuran file terlalu besar.");
+      } finally {
+        btn.disabled = false;
+        loader.style.display = 'none';
+      }
     }
   </script>
 </body>
