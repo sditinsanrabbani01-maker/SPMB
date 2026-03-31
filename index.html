@@ -181,7 +181,7 @@
         if (data.hero_quote) document.getElementById('heroQuote').innerText = data.hero_quote;
         const registrationAlert = document.getElementById('registrationAlert');
         const buttonContainer = document.getElementById('buttonContainer');
-        if (data.registration_open === 'false') {
+        if (data.registration_open && data.registration_open.toLowerCase() === 'false') {
           registrationAlert.classList.remove('d-none');
           buttonContainer.style.display = 'none';
         } else {

@@ -434,7 +434,7 @@
       try {
         const settingsRes = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
         const settingsResult = await settingsRes.json();
-        if (settingsResult.data.registration_open !== 'true') {
+        if (settingsResult.data.registration_open && settingsResult.data.registration_open.toLowerCase() !== 'true') {
           alert("Pendaftaran sedang ditutup. Silakan coba lagi nanti.");
           btn.disabled = false;
           loader.style.display = 'none';
