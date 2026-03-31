@@ -49,7 +49,7 @@ function setupSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Data_SPMB") || ss.insertSheet("Data_SPMB");
   if (sheet.getLastRow() === 0) {
-    var headers = ["Timestamp", "No Registrasi", "Nama Lengkap", "NIK", "NISN", "Tempat Lahir", "Tanggal Lahir", "Jenis Kelamin", "Alamat",
+    var headers = ["Timestamp", "No Registrasi", "Nama Lengkap", "NIK", "NISN", "Tempat Lahir", "Tanggal Lahir", "Jenis Kelamin", "ABK", "Alamat",
                    "Nama Ayah", "Pekerjaan Ayah", "Alamat Ayah", "Gaji Ayah", "HP Ayah",
                    "Nama Ibu", "Pekerjaan Ibu", "Alamat Ibu", "Gaji Ibu", "HP Ibu",
                    "Nama Sekolah", "NPSN", "Alamat Sekolah", "Status"];
@@ -63,7 +63,7 @@ function handleSubmit(data) {
   var year = new Date().getFullYear();
   var regNo = "SPMB-" + year + "-" + ("0000" + sheet.getLastRow()).slice(-4);
 
-  sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.alamat,
+  sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.abk, data.alamat,
                    data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
                    data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
                    data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
@@ -91,7 +91,7 @@ function handleUpdateStatus(noReg, status) {
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][1] === noReg) {
-      sheet.getRange(i + 1, 23).setValue(status); // Kolom Status sekarang di posisi 23 (index 22)
+      sheet.getRange(i + 1, 24).setValue(status); // Kolom Status sekarang di posisi 24 (index 23)
       return true;
     }
   }
@@ -106,7 +106,7 @@ function handleCekStatus(keyword) {
     if (rows[i][1] === keyword || rows[i][3].toString() === keyword || rows[i][4].toString() === keyword) {
       return {
         nama: rows[i][2],
-        status: rows[i][22]
+        status: rows[i][23]
       };
     }
   }

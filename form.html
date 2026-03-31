@@ -31,22 +31,10 @@
                 <li>Usia 6 tahun sebelum 1 Juli 2026</li>
                 <li>Beragama Islam</li>
                 <li>Sehat jasmani dan rohani</li>
-                <li>Tidak buta warna</li>
                 <li>Bersedia mengikuti kurikulum SDIT</li>
+                <li>Bersedia mengikuti aturan SDIT</li>
               </ul>
             </div>
-            <div class="col-md-6">
-              <h6><b>⚠️ Ketentuan:</b></h6>
-              <ul>
-                <li>Pastikan semua data diisi dengan benar dan lengkap</li>
-                <li>Berkas harus jelas (tidak blur) dan format JPG/PNG/PDF</li>
-                <li>Ukuran file maksimal 5MB per berkas</li>
-                <li>Data yang sudah dikirim tidak dapat diubah</li>
-                <li>Pendaftaran bersifat final</li>
-              </ul>
-            </div>
-          </div>
-        </div>
 
         <div class="card card-form p-4">
           <div class="card-body">
@@ -84,6 +72,14 @@
                   <option value="" disabled selected>Pilih...</option>
                   <option value="Laki-laki">Laki-laki</option>
                   <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Anak Berkebutuhan Khusus (ABK) *</label>
+                <select id="abk" class="form-select" required>
+                  <option value="" disabled selected>Pilih...</option>
+                  <option value="Tidak">Tidak</option>
+                  <option value="Ya">Ya</option>
                 </select>
               </div>
               <div class="mb-3">
@@ -304,6 +300,7 @@
           tempatLahir: document.getElementById('tempatLahir').value,
           tanggalLahir: document.getElementById('tanggalLahir').value,
           jk: document.getElementById('jk').value,
+          abk: document.getElementById('abk').value,
           alamat: alamatSiswa,
           // Data Ayah
           namaAyah: document.getElementById('namaAyah').value,
