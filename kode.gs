@@ -52,6 +52,12 @@ function doPost(e) {
       return createResponse({ success: true, data: details });
     }
 
+    // 8. Aksi Save Payment
+    if (action === "savePayment") {
+      var save = handleSavePayment(requestData.amount, requestData.name, requestData.status);
+      return createResponse({ success: save });
+    }
+
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
 
   } catch (error) {
@@ -84,6 +90,12 @@ function setupSheet() {
     settingsSheet.appendRow(["hero_text", "Selamat Datang di SPMB SDIT INSAN RABBANI Online"]);
     settingsSheet.appendRow(["hero_subtext", "Tahun Ajaran 2026/2027"]);
     settingsSheet.appendRow(["hero_quote", "\"Wujudkan Generasi Qurani Sejak Dini Bersama Kami\""]);
+  }
+
+  var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
+  if (paymentSheet.getLastRow() === 0) {
+    paymentSheet.appendRow(["Timestamp", "Nama", "Jumlah", "Status"]);
+    paymentSheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
   }
 }
 
@@ -219,6 +231,12 @@ function handleGetRegistrantDetails(noReg) {
     }
   }
   return null;
+}
+
+function handleSavePayment(amount, name, status) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pembayaran");
+  sheet.appendRow([new Date(), name, amount, status]);
+  return true;
 }
 
 function sendWhatsAppMessage(number, message) {
