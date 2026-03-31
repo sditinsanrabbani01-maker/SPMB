@@ -1,73 +1,27 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Cek Pendaftaran</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card-custom { border-radius: 20px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    .btn-gradient { background: linear-gradient(135deg, #00B4DB 0%, #0083B0 100%); color: white; border: none; }
-  </style>
+    <meta charset="UTF-8"><title>Cek Kelulusan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-  <div class="container my-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <a href="index.html" class="btn btn-outline-secondary mb-3"><i class="fas fa-arrow-left me-2"></i>Kembali</a>
-        
-        <div class="card card-custom p-4">
-          <div class="card-body">
-            <h4 class="text-center fw-bold mb-3" style="color: #0083B0;"><i class="fas fa-search me-2"></i>Cek Status Pendaftaran</h4>
-            <form onsubmit="handleCek(this); return false;">
-              <div class="input-group mb-3">
-                <input type="text" id="keyword" class="form-control" placeholder="Contoh: SPMB-2026-0001 atau Nama" required>
-                <button type="submit" id="btnCari" class="btn btn-gradient px-4">Cari</button>
-              </div>
-            </form>
-            <div id="outputArea" class="mt-4 d-none"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const API_URL = "MASUKKAN_URL_WEB_APP_GAS_KAMU";
-
-    function handleCek(form) {
-      const btn = document.getElementById('btnCari');
-      const output = document.getElementById('outputArea');
-      btn.disabled = true;
-      output.classList.add('d-none');
-      
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "cekPendaftaran", keyword: document.getElementById('keyword').value })
-      })
-      .then(res => res.json())
-      .then(response => {
-        btn.disabled = false;
-        output.classList.remove('d-none');
-        
-        if (response.success) {
-          const d = response.data;
-          let alertClass = d.status === 'DITERIMA' ? 'alert-success' : (d.status === 'DITOLAK' ? 'alert-danger' : 'alert-warning');
-          
-          output.innerHTML = `
-            <div class="alert ${alertClass} text-center fw-bold">${d.status}</div>
-            <div class="p-3 border rounded bg-light">
-              <p class="mb-1 text-muted small">No Registrasi: <b>${d.noReg}</b></p>
-              <p class="mb-1 text-muted small">Nama: <b>${d.nama}</b></p>
-              <p class="mb-1 text-muted small">NISN: <b>${d.nisn}</b></p>
-              <p class="mb-1 text-muted small">Sekolah: <b>${d.sekolah}</b></p>
-            </div>`;
-        } else {
-          output.innerHTML = `<div class="alert alert-danger text-center">${response.message}</div>`;
-        }
-      }).catch(err => { alert("Gagal menyambung ke server!"); btn.disabled = false; });
+<body class="bg-light"><div class="container mt-5 text-center">
+    <h3>Cek Status Pendaftaran</h3>
+    <div class="row justify-content-center mt-4"><div class="col-md-5">
+        <input type="text" id="keyword" class="form-control" placeholder="Masukkan No Registrasi / NISN">
+        <button onclick="cekData()" class="btn btn-primary mt-2 w-100">CEK STATUS</button>
+        <div id="hasil" class="mt-4"></div>
+    </div></div>
+</div>
+<script src="config.js"></script>
+<script>
+    async function cekData() {
+        const key = document.getElementById('keyword').value;
+        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "cekPendaftaran", keyword: key }) });
+        const result = await res.json();
+        const h = document.getElementById('hasil');
+        if(result.success) {
+            h.innerHTML = `<div class="card p-3"><h5>${result.data.nama}</h5><p>Status: <b>${result.data.status}</b></p></div>`;
+        } else { h.innerHTML = `<div class="alert alert-danger">Data tidak ditemukan</div>`; }
     }
-  </script>
-</body>
-</html>
+</script>
+</body></html>
