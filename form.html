@@ -163,16 +163,16 @@
       };
 
       try {
-        // PERBAIKAN: Mengambil karena input file adalah array
-        const fFoto = document.getElementById('foto').files;
-        const fKk = document.getElementById('kk').files;
-        const fAkta = document.getElementById('akta').files;
-        const fBayar = document.getElementById('bayar').files;
+        // PERBAIKAN: Mengambil file pertama dari FileList dengan pengecekan keberadaan
+        const fFoto = document.getElementById('foto').files ? document.getElementById('foto').files[0] : null;
+        const fKk = document.getElementById('kk').files ? document.getElementById('kk').files[0] : null;
+        const fAkta = document.getElementById('akta').files ? document.getElementById('akta').files[0] : null;
+        const fBayar = document.getElementById('bayar').files ? document.getElementById('bayar').files[0] : null;
 
-        if(fFoto) payload.data.foto = await fileToBase64(fFoto);
-        if(fKk) payload.data.kk = await fileToBase64(fKk);
-        if(fAkta) payload.data.akta = await fileToBase64(fAkta);
-        if(fBayar) payload.data.bayar = await fileToBase64(fBayar);
+        if(fFoto && fFoto instanceof Blob) payload.data.foto = await fileToBase64(fFoto);
+        if(fKk && fKk instanceof Blob) payload.data.kk = await fileToBase64(fKk);
+        if(fAkta && fAkta instanceof Blob) payload.data.akta = await fileToBase64(fAkta);
+        if(fBayar && fBayar instanceof Blob) payload.data.bayar = await fileToBase64(fBayar);
 
         const response = await fetch(URL_GAS, {
           method: "POST",
