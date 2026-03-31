@@ -9,12 +9,10 @@
 </div></div></div>
 <script src="config.js"></script>
 <script>
-    async function doLogin() {
+    function doLogin() {
         const u = document.getElementById('u').value;
         const p = document.getElementById('p').value;
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "verifyLogin", username: u, password: p }) });
-        const result = await res.json();
-        if (result.success) {
+        if(u === ADMIN_USER && p === ADMIN_PASS) {
             localStorage.setItem('isLogin', 'true');
             window.location.href='admin.html';
         } else {
