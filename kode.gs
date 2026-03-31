@@ -46,6 +46,12 @@ function doPost(e) {
       return createResponse({ success: update });
     }
 
+    // 7. Aksi Get Registrant Details
+    if (action === "getRegistrantDetails") {
+      var details = handleGetRegistrantDetails(requestData.noReg);
+      return createResponse({ success: true, data: details });
+    }
+
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
 
   } catch (error) {
@@ -176,6 +182,42 @@ function handleUpdateSettings(key, value) {
   // If not found, add new
   sheet.appendRow([key, value]);
   return true;
+}
+
+function handleGetRegistrantDetails(noReg) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][1] === noReg) {
+      return {
+        timestamp: rows[i][0],
+        noReg: rows[i][1],
+        nama: rows[i][2],
+        nik: rows[i][3],
+        nisn: rows[i][4],
+        tempatLahir: rows[i][5],
+        tanggalLahir: rows[i][6],
+        jk: rows[i][7],
+        abk: rows[i][8],
+        alamat: rows[i][9],
+        namaAyah: rows[i][10],
+        pekerjaanAyah: rows[i][11],
+        alamatAyah: rows[i][12],
+        gajiAyah: rows[i][13],
+        hpAyah: rows[i][14],
+        namaIbu: rows[i][15],
+        pekerjaanIbu: rows[i][16],
+        alamatIbu: rows[i][17],
+        gajiIbu: rows[i][18],
+        hpIbu: rows[i][19],
+        namaSekolah: rows[i][20],
+        npsn: rows[i][21],
+        alamatSekolah: rows[i][22],
+        status: rows[i][23]
+      };
+    }
+  }
+  return null;
 }
 
 function sendWhatsAppMessage(number, message) {

@@ -3,6 +3,43 @@
 <head><title>Dashboard Admin</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head>
 <body><div class="container mt-4">
     <h3>Dashboard Admin SPMB</h3>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary" id="totalReg">0</h5>
+                    <p class="card-text">Total Pendaftar</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning" id="menunggu">0</h5>
+                    <p class="card-text">Menunggu</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success" id="lulus">0</h5>
+                    <p class="card-text">Lulus</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-danger" id="ditolak">0</h5>
+                    <p class="card-text">Ditolak</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mb-4">
         <h5>Pengaturan Pendaftaran</h5>
         <div id="settingsDiv"></div>
@@ -12,27 +49,139 @@
         <div id="contentDiv"></div>
         <button onclick="saveContent()" class="btn btn-primary mt-2">Simpan Konten</button>
     </div>
-    <h5>Data Pendaftar SPMB</h5>
-    <table class="table table-bordered mt-3">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5>Data Pendaftar SPMB</h5>
+        <div>
+            <input type="text" id="searchInput" class="form-control d-inline-block w-auto me-2" placeholder="Cari nama atau no reg...">
+            <button onclick="exportCSV()" class="btn btn-success">Export CSV</button>
+        </div>
+    </div>
+    <table class="table table-bordered">
         <thead class="table-dark"><tr><th>No Reg</th><th>Nama</th><th>WhatsApp</th><th>Status</th><th>Aksi</th></tr></thead>
         <tbody id="tBody"></tbody>
     </table>
 </div>
+
+<!-- Modal for Details -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail Pendaftar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+        </div>
+    </div>
+</div>
 <script src="config.js"></script>
 <script>
     if(localStorage.getItem('isLogin') !== 'true') window.location.href='login.html';
+    let allData = [];
     async function loadData() {
         const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getData" }) });
         const result = await res.json();
+        allData = result.data;
+        updateStats(allData);
+        renderTable(allData);
+    }
+    function updateStats(data) {
+        const total = data.length;
+        const menunggu = data.filter(d => d.status === 'MENUNGGU').length;
+        const lulus = data.filter(d => d.status === 'LULUS').length;
+        const ditolak = data.filter(d => d.status === 'TOLAK').length;
+        document.getElementById('totalReg').textContent = total;
+        document.getElementById('menunggu').textContent = menunggu;
+        document.getElementById('lulus').textContent = lulus;
+        document.getElementById('ditolak').textContent = ditolak;
+    }
+    function renderTable(data) {
         const tb = document.getElementById('tBody');
-        tb.innerHTML = result.data.map(d => `
-            <tr><td>${d.noReg}</td><td>${d.nama}</td><td>${d.hp}</td><td>${d.status}</td>
-            <td><button onclick="upStat('${d.noReg}','LULUS')" class="btn btn-sm btn-success">Lulus</button></td></tr>
+        tb.innerHTML = data.map(d => `
+            <tr>
+                <td>${d.noReg}</td>
+                <td>${d.nama}</td>
+                <td>${d.hp}</td>
+                <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
+                <td>
+                    <button onclick="upStat('${d.noReg}','LULUS')" class="btn btn-sm btn-success me-1">Lulus</button>
+                    <button onclick="upStat('${d.noReg}','TOLAK')" class="btn btn-sm btn-danger me-1">Tolak</button>
+                    <button onclick="upStat('${d.noReg}','ULANG')" class="btn btn-sm btn-warning me-1">Ulang</button>
+                    <button onclick="viewDetails('${d.noReg}')" class="btn btn-sm btn-info">Detail</button>
+                </td>
+            </tr>
         `).join('');
+    }
+    function getStatusColor(status) {
+        switch(status) {
+            case 'MENUNGGU': return 'warning';
+            case 'LULUS': return 'success';
+            case 'TOLAK': return 'danger';
+            case 'ULANG': return 'secondary';
+            default: return 'primary';
+        }
     }
     async function upStat(no, s) {
         await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateStatus", noReg: no, status: s }) });
         loadData();
+    }
+    function filterData() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allData.filter(d => d.noReg.toLowerCase().includes(query) || d.nama.toLowerCase().includes(query));
+        updateStats(filtered);
+        renderTable(filtered);
+    }
+    document.getElementById('searchInput').addEventListener('input', filterData);
+    function exportCSV() {
+        let csv = 'No Reg,Nama,WhatsApp,Status\n';
+        allData.forEach(d => {
+            csv += `${d.noReg},${d.nama},${d.hp},${d.status}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'data_pendaftar.csv';
+        a.click();
+    }
+    async function viewDetails(noReg) {
+        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getRegistrantDetails", noReg: noReg }) });
+        const result = await res.json();
+        if (!result.success || !result.data) return;
+        const d = result.data;
+        const modalBody = document.getElementById('modalBody');
+        modalBody.innerHTML = `
+            <h6>Data Siswa</h6>
+            <p><strong>No Registrasi:</strong> ${d.noReg}</p>
+            <p><strong>Nama:</strong> ${d.nama}</p>
+            <p><strong>NIK:</strong> ${d.nik}</p>
+            <p><strong>NISN:</strong> ${d.nisn}</p>
+            <p><strong>Tempat Lahir:</strong> ${d.tempatLahir}</p>
+            <p><strong>Tanggal Lahir:</strong> ${d.tanggalLahir}</p>
+            <p><strong>Jenis Kelamin:</strong> ${d.jk}</p>
+            <p><strong>ABK:</strong> ${d.abk}</p>
+            <p><strong>Alamat:</strong> ${d.alamat}</p>
+            <h6>Data Ayah</h6>
+            <p><strong>Nama:</strong> ${d.namaAyah}</p>
+            <p><strong>Pekerjaan:</strong> ${d.pekerjaanAyah}</p>
+            <p><strong>Alamat:</strong> ${d.alamatAyah}</p>
+            <p><strong>Gaji:</strong> ${d.gajiAyah}</p>
+            <p><strong>HP:</strong> ${d.hpAyah}</p>
+            <h6>Data Ibu</h6>
+            <p><strong>Nama:</strong> ${d.namaIbu}</p>
+            <p><strong>Pekerjaan:</strong> ${d.pekerjaanIbu}</p>
+            <p><strong>Alamat:</strong> ${d.alamatIbu}</p>
+            <p><strong>Gaji:</strong> ${d.gajiIbu}</p>
+            <p><strong>HP:</strong> ${d.hpIbu}</p>
+            <h6>Data Sekolah Asal</h6>
+            <p><strong>Nama Sekolah:</strong> ${d.namaSekolah}</p>
+            <p><strong>NPSN:</strong> ${d.npsn}</p>
+            <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
+            <p><strong>Status:</strong> ${d.status}</p>
+        `;
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
     }
     async function loadSettings() {
         const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
