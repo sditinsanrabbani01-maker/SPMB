@@ -600,12 +600,26 @@
       }
 
       // Validasi WhatsApp
-      const hpAyah = document.getElementById('hpAyah').value;
-      const hpIbu = document.getElementById('hpIbu').value;
+      let hpAyah = document.getElementById('hpAyah').value;
+      let hpIbu = document.getElementById('hpIbu').value;
       if (!hpAyah && !hpIbu) {
         alert("Minimal salah satu nomor WhatsApp (ayah atau ibu) harus diisi!");
         return;
       }
+
+      // Normalize WhatsApp numbers to 62
+      function normalizeWhatsApp(num) {
+        if (!num) return '';
+        num = num.replace(/\D/g, ''); // Remove non-digits
+        if (num.startsWith('0')) {
+          num = '62' + num.substring(1);
+        } else if (!num.startsWith('62')) {
+          num = '62' + num;
+        }
+        return num;
+      }
+      hpAyah = normalizeWhatsApp(hpAyah);
+      hpIbu = normalizeWhatsApp(hpIbu);
 
       // Ambil alamat siswa
       let alamatSiswa = document.getElementById('alamatSelect').value;

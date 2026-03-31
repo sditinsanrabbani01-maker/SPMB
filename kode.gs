@@ -247,12 +247,24 @@ function handleSavePayment(amount, name, status, image, filename) {
   return true;
 }
 
+function normalizeWhatsAppNumber(num) {
+  if (!num) return '';
+  num = num.toString().replace(/\D/g, '');
+  if (num.startsWith('0')) {
+    num = '62' + num.substring(1);
+  } else if (!num.startsWith('62')) {
+    num = '62' + num;
+  }
+  return num;
+}
+
 function sendWhatsAppMessage(number, message) {
+  var normalizedNumber = normalizeWhatsAppNumber(number);
   var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
   var url = "https://api.whacenter.com/api/send";
   var payload = {
     device_id: deviceId,
-    number: number,
+    number: normalizedNumber,
     message: message
   };
   var options = {
