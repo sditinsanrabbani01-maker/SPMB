@@ -1,44 +1,97 @@
 <!DOCTYPE html>
 <html lang="id">
-<head><title>Dashboard Admin</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head>
-<body><div class="container mt-4">
-    <h3>Dashboard Admin SPMB</h3>
-
-    <!-- Statistics -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-primary" id="totalReg">0</h5>
-                    <p class="card-text">Total Pendaftar</p>
+<head>
+  <title>Dashboard Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Accessibility enhancements */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #000;
+      color: white;
+      padding: 8px;
+      z-index: 100;
+    }
+    .skip-link:focus {
+      top: 0;
+    }
+    /* Enhanced focus styles */
+    .btn:focus, .form-control:focus {
+      outline: 2px solid #00B4DB;
+      outline-offset: 2px;
+    }
+    /* Ensure adequate color contrast */
+    .badge {
+      font-weight: 600;
+    }
+    /* Ensure modal is accessible */
+    .modal-content {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container mt-4" id="main-content">
+        <h3>Dashboard Admin SPMB</h3>
+        
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary" id="totalReg">0</h5>
+                        <p class="card-text">Total Pendaftar</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning" id="menunggu">0</h5>
+                        <p class="card-text">Menunggu</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-success" id="lulus">0</h5>
+                        <p class="card-text">Lulus</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger" id="ditolak">0</h5>
+                        <p class="card-text">Ditolak</p>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-warning" id="menunggu">0</h5>
-                    <p class="card-text">Menunggu</p>
-                </div>
+        
+        <!-- Payment History -->
+        <div class="mb-4">
+            <h5>Riwayat Pembayaran</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama</th>
+                            <th>Nominal</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentHistoryBody">
+                        <!-- Payment history will be loaded here -->
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-success" id="lulus">0</h5>
-                    <p class="card-text">Lulus</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-danger" id="ditolak">0</h5>
-                    <p class="card-text">Ditolak</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="mb-4">
         <h5>Pengaturan Sistem</h5>
@@ -99,133 +152,191 @@
     </div>
 </div>
 <script src="config.js"></script>
-<script>
-    if(localStorage.getItem('isLogin') !== 'true') window.location.href='login.html';
-    let allData = [];
-    async function loadData() {
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getData" }) });
-        const result = await res.json();
-        allData = result.data;
-        updateStats(allData);
-        renderTable(allData);
-    }
-    function updateStats(data) {
-        const total = data.length;
-        const menunggu = data.filter(d => d.status === 'MENUNGGU').length;
-        const lulus = data.filter(d => d.status === 'LULUS').length;
-        const ditolak = data.filter(d => d.status === 'TOLAK').length;
-        document.getElementById('totalReg').textContent = total;
-        document.getElementById('menunggu').textContent = menunggu;
-        document.getElementById('lulus').textContent = lulus;
-        document.getElementById('ditolak').textContent = ditolak;
-    }
-    function renderTable(data) {
-        const tb = document.getElementById('tBody');
-        tb.innerHTML = data.map(d => `
-            <tr>
-                <td>${d.noReg}</td>
-                <td>${d.nama}</td>
-                <td>${d.hp}</td>
-                <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
-                <td>
-                    <button onclick="upStat('${d.noReg}','LULUS')" class="btn btn-sm btn-success me-1">Lulus</button>
-                    <button onclick="upStat('${d.noReg}','TOLAK')" class="btn btn-sm btn-danger me-1">Tolak</button>
-                    <button onclick="upStat('${d.noReg}','ULANG')" class="btn btn-sm btn-warning me-1">Ulang</button>
-                    <button onclick="viewDetails('${d.noReg}')" class="btn btn-sm btn-info">Detail</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-    function getStatusColor(status) {
-        switch(status) {
-            case 'MENUNGGU': return 'warning';
-            case 'LULUS': return 'success';
-            case 'TOLAK': return 'danger';
-            case 'ULANG': return 'secondary';
-            default: return 'primary';
+    <script>
+        if(localStorage.getItem('isLogin') !== 'true') window.location.href='login.html';
+        let allData = [];
+        let paymentHistory = [];
+        
+        async function loadData() {
+            const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getData" }) });
+            const result = await res.json();
+            allData = result.data;
+            updateStats(allData);
+            renderTable(allData);
         }
-    }
-    async function upStat(no, s) {
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateStatus", noReg: no, status: s }) });
+        
+        async function loadPaymentHistory() {
+            try {
+                const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getPaymentHistory" }) });
+                const result = await res.json();
+                if (result.success) {
+                    paymentHistory = result.data;
+                    renderPaymentHistory(paymentHistory);
+                }
+            } catch (error) {
+                console.error('Failed to load payment history:', error);
+                // If the action doesn't exist yet, we'll handle it gracefully
+                renderPaymentHistory([]);
+            }
+        }
+        
+        function updateStats(data) {
+            const total = data.length;
+            const menunggu = data.filter(d => d.status === 'MENUNGGU').length;
+            const lulus = data.filter(d => d.status === 'LULUS').length;
+            const ditolak = data.filter(d => d.status === 'TOLAK').length;
+            document.getElementById('totalReg').textContent = total;
+            document.getElementById('menunggu').textContent = menunggu;
+            document.getElementById('lulus').textContent = lulus;
+            document.getElementById('ditolak').textContent = ditolak;
+        }
+        
+        function renderTable(data) {
+            const tb = document.getElementById('tBody');
+            tb.innerHTML = data.map(d => `
+                <tr>
+                    <td>${d.noReg}</td>
+                    <td>${d.nama}</td>
+                    <td>${d.hp}</td>
+                    <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
+                    <td>
+                        <button onclick="upStat('${d.noReg}','LULUS')" class="btn btn-sm btn-success me-1 lulus-btn" ${d.status === 'LULUS' ? 'disabled' : ''}>Lulus</button>
+                        <button onclick="upStat('${d.noReg}','TOLAK')" class="btn btn-sm btn-danger me-1 tolak-btn" ${d.status === 'TOLAK' || d.status === 'LULUS' ? 'disabled' : ''}>Tolak</button>
+                        <button onclick="upStat('${d.noReg}','ULANG')" class="btn btn-sm btn-warning me-1 ulang-btn" ${d.status === 'LULUS' || d.status === 'TOLAK' ? 'disabled' : ''}>Ulang</button>
+                        <button onclick="viewDetails('${d.noReg}')" class="btn btn-sm btn-info detail-btn">Detail</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function renderPaymentHistory(data) {
+            const tb = document.getElementById('paymentHistoryBody');
+            if (data.length === 0) {
+                tb.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada data pembayaran</td></tr>`;
+                return;
+            }
+            
+            tb.innerHTML = data.map(p => `
+                <tr>
+                    <td>${new Date(p.timestamp).toLocaleString()}</td>
+                    <td>${p.name}</td>
+                    <td>Rp ${parseInt(p.amount).toLocaleString()}</td>
+                    <td><span class="badge bg-${p.status === 'confirmed' ? 'success' : 'secondary'}">${p.status}</span></td>
+                </tr>
+            `).join('');
+        }
+        
+        function getStatusColor(status) {
+            switch(status) {
+                case 'MENUNGGU': return 'warning';
+                case 'LULUS': return 'success';
+                case 'TOLAK': return 'danger';
+                case 'ULANG': return 'secondary';
+                default: return 'primary';
+            }
+        }
+        
+        async function upStat(no, s) {
+            try {
+                const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateStatus", noReg: no, status: s }) });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Status berhasil diperbarui! Notifikasi WhatsApp telah dikirim.');
+                } else {
+                    alert('Status berhasil diperbarui, tetapi notifikasi WhatsApp gagal dikirim.');
+                }
+                loadData();
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('Terjadi kesalahan saat memperbarui status.');
+            }
+        }
+        
+        function filterData() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allData.filter(d => d.noReg.toLowerCase().includes(query) || d.nama.toLowerCase().includes(query));
+            updateStats(filtered);
+            renderTable(filtered);
+        }
+        
+        document.getElementById('searchInput').addEventListener('input', filterData);
+        
+        function exportCSV() {
+            let csv = 'No Reg,Nama,WhatsApp,Status\n';
+            allData.forEach(d => {
+                csv += `${d.noReg},${d.nama},${d.hp},${d.status}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data_pendaftar.csv';
+            a.click();
+        }
+        
+        async function viewDetails(noReg) {
+            const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getRegistrantDetails", noReg: noReg }) });
+            const result = await res.json();
+            if (!result.success || !result.data) return;
+            const d = result.data;
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <h6>Data Siswa</h6>
+                <p><strong>No Registrasi:</strong> ${d.noReg}</p>
+                <p><strong>Nama:</strong> ${d.nama}</p>
+                <p><strong>NIK:</strong> ${d.nik}</p>
+                <p><strong>NISN:</strong> ${d.nisn}</p>
+                <p><strong>Tempat Lahir:</strong> ${d.tempatLahir}</p>
+                <p><strong>Tanggal Lahir:</strong> ${d.tanggalLahir}</p>
+                <p><strong>Jenis Kelamin:</strong> ${d.jk}</p>
+                <p><strong>ABK:</strong> ${d.abk}</p>
+                <p><strong>Alamat:</strong> ${d.alamat}</p>
+                <h6>Data Ayah</h6>
+                <p><strong>Nama:</strong> ${d.namaAyah}</p>
+                <p><strong>Pekerjaan:</strong> ${d.pekerjaanAyah}</p>
+                <p><strong>Alamat:</strong> ${d.alamatAyah}</p>
+                <p><strong>Gaji:</strong> ${d.gajiAyah}</p>
+                <p><strong>HP:</strong> ${d.hpAyah}</p>
+                <h6>Data Ibu</h6>
+                <p><strong>Nama:</strong> ${d.namaIbu}</p>
+                <p><strong>Pekerjaan:</strong> ${d.pekerjaanIbu}</p>
+                <p><strong>Alamat:</strong> ${d.alamatIbu}</p>
+                <p><strong>Gaji:</strong> ${d.gajiIbu}</p>
+                <p><strong>HP:</strong> ${d.hpIbu}</p>
+                <h6>Data Sekolah Asal</h6>
+                <p><strong>Nama Sekolah:</strong> ${d.namaSekolah}</p>
+                <p><strong>NPSN:</strong> ${d.npsn}</p>
+                <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
+                <p><strong>Status:</strong> ${d.status}</p>
+            `;
+            new bootstrap.Modal(document.getElementById('detailModal')).show();
+        }
+        
+        async function loadSettings() {
+            const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+            const result = await res.json();
+            const data = result.data;
+            document.getElementById('registration_open').checked = data.registration_open === 'true';
+            document.getElementById('hero_text').value = data.hero_text || '';
+            document.getElementById('hero_subtext').value = data.hero_subtext || '';
+            document.getElementById('hero_quote').value = data.hero_quote || '';
+        }
+        
+        async function saveSettings() {
+            const registration_open = document.getElementById('registration_open').checked ? 'true' : 'false';
+            const hero_text = document.getElementById('hero_text').value;
+            const hero_subtext = document.getElementById('hero_subtext').value;
+            const hero_quote = document.getElementById('hero_quote').value;
+            await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "registration_open", value: registration_open }) });
+            await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_text", value: hero_text }) });
+            await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_subtext", value: hero_subtext }) });
+            await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_quote", value: hero_quote }) });
+            alert('Pengaturan disimpan!');
+        }
+        
+        // Initialize
         loadData();
-    }
-    function filterData() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = allData.filter(d => d.noReg.toLowerCase().includes(query) || d.nama.toLowerCase().includes(query));
-        updateStats(filtered);
-        renderTable(filtered);
-    }
-    document.getElementById('searchInput').addEventListener('input', filterData);
-    function exportCSV() {
-        let csv = 'No Reg,Nama,WhatsApp,Status\n';
-        allData.forEach(d => {
-            csv += `${d.noReg},${d.nama},${d.hp},${d.status}\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'data_pendaftar.csv';
-        a.click();
-    }
-    async function viewDetails(noReg) {
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getRegistrantDetails", noReg: noReg }) });
-        const result = await res.json();
-        if (!result.success || !result.data) return;
-        const d = result.data;
-        const modalBody = document.getElementById('modalBody');
-        modalBody.innerHTML = `
-            <h6>Data Siswa</h6>
-            <p><strong>No Registrasi:</strong> ${d.noReg}</p>
-            <p><strong>Nama:</strong> ${d.nama}</p>
-            <p><strong>NIK:</strong> ${d.nik}</p>
-            <p><strong>NISN:</strong> ${d.nisn}</p>
-            <p><strong>Tempat Lahir:</strong> ${d.tempatLahir}</p>
-            <p><strong>Tanggal Lahir:</strong> ${d.tanggalLahir}</p>
-            <p><strong>Jenis Kelamin:</strong> ${d.jk}</p>
-            <p><strong>ABK:</strong> ${d.abk}</p>
-            <p><strong>Alamat:</strong> ${d.alamat}</p>
-            <h6>Data Ayah</h6>
-            <p><strong>Nama:</strong> ${d.namaAyah}</p>
-            <p><strong>Pekerjaan:</strong> ${d.pekerjaanAyah}</p>
-            <p><strong>Alamat:</strong> ${d.alamatAyah}</p>
-            <p><strong>Gaji:</strong> ${d.gajiAyah}</p>
-            <p><strong>HP:</strong> ${d.hpAyah}</p>
-            <h6>Data Ibu</h6>
-            <p><strong>Nama:</strong> ${d.namaIbu}</p>
-            <p><strong>Pekerjaan:</strong> ${d.pekerjaanIbu}</p>
-            <p><strong>Alamat:</strong> ${d.alamatIbu}</p>
-            <p><strong>Gaji:</strong> ${d.gajiIbu}</p>
-            <p><strong>HP:</strong> ${d.hpIbu}</p>
-            <h6>Data Sekolah Asal</h6>
-            <p><strong>Nama Sekolah:</strong> ${d.namaSekolah}</p>
-            <p><strong>NPSN:</strong> ${d.npsn}</p>
-            <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
-            <p><strong>Status:</strong> ${d.status}</p>
-        `;
-        new bootstrap.Modal(document.getElementById('detailModal')).show();
-    }
-    async function loadSettings() {
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
-        const result = await res.json();
-        const data = result.data;
-        document.getElementById('registration_open').checked = data.registration_open === 'true';
-        document.getElementById('hero_text').value = data.hero_text || '';
-        document.getElementById('hero_subtext').value = data.hero_subtext || '';
-        document.getElementById('hero_quote').value = data.hero_quote || '';
-    }
-    async function saveSettings() {
-        const registration_open = document.getElementById('registration_open').checked ? 'true' : 'false';
-        const hero_text = document.getElementById('hero_text').value;
-        const hero_subtext = document.getElementById('hero_subtext').value;
-        const hero_quote = document.getElementById('hero_quote').value;
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "registration_open", value: registration_open }) });
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_text", value: hero_text }) });
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_subtext", value: hero_subtext }) });
-        await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_quote", value: hero_quote }) });
-        alert('Pengaturan disimpan!');
-    }
-    loadData();
-    loadSettings();
-</script>
+        loadSettings();
+        loadPaymentHistory();
+    </script>
 </body></html>

@@ -196,17 +196,23 @@ function handleUpdateStatus(noReg, status) {
 
       // Send WhatsApp notification if status changed
       if (oldStatus !== status) {
+        Logger.log("Status changed for " + noReg + " from " + oldStatus + " to " + status);
+        
         // Send to registrant/parent
         var whatsappNumber = getCPContactNumber(noReg);
         var message = "Status pendaftaran Anda telah berubah.\n\nNo Registrasi: " + noReg + "\nNama: " + rows[i][2] + "\nStatus Sebelumnya: " + oldStatus + "\nStatus Baru: " + status + "\n\nSilakan cek status pendaftaran secara berkala.";
         
         if (whatsappNumber) {
+          Logger.log("Sending notification to CP: " + whatsappNumber);
           sendWhatsAppMessage(whatsappNumber, message);
         } else {
           // Fallback to parent's phone number
           var fallbackNumber = rows[i][14] || rows[i][19]; // HP Ayah or Ibu
           if (fallbackNumber) {
+            Logger.log("Sending notification to parent: " + fallbackNumber);
             sendWhatsAppMessage(fallbackNumber, message);
+          } else {
+            Logger.log("No phone number found for registrant: " + noReg);
           }
         }
         
@@ -215,8 +221,11 @@ function handleUpdateStatus(noReg, status) {
         if (cpNumbers.length > 0) {
           var cpMessage = "PERUBAHAN STATUS PENDAFTARAN SPMB SDIT INSAN RABBANI\n\nNo Registrasi: " + noReg + "\nNama: " + rows[i][2] + "\nStatus Sebelumnya: " + oldStatus + "\nStatus Baru: " + status + "\n\nSilakan cek data pendaftaran di dashboard admin.";
           for (var j = 0; j < cpNumbers.length; j++) {
+            Logger.log("Sending notification to CP list: " + cpNumbers[j]);
             sendWhatsAppMessage(cpNumbers[j], cpMessage);
           }
+        } else {
+          Logger.log("No CP contacts found in CP/Contact Person sheet");
         }
       }
 
@@ -417,9 +426,12 @@ function sendWhatsAppMessage(number, message) {
     payload: JSON.stringify(payload)
   };
   try {
-    UrlFetchApp.fetch(url, options);
+    Logger.log("Sending WhatsApp to " + normalizedNumber + ": " + message.substring(0, 50) + "...");
+    var response = UrlFetchApp.fetch(url, options);
+    Logger.log("WhatsApp sent successfully to " + normalizedNumber);
     return true;
   } catch (e) {
+    Logger.log("Error sending WhatsApp to " + normalizedNumber + ": " + e.toString());
     return false;
   }
 }
