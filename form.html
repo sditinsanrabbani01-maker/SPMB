@@ -132,19 +132,29 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycby54JErrLmy-w1d9Inc2YvUn1M2QTO4-5rOV0Shn0XTul3a_JsKp-49d8ggR_BMLSn1Dw/exec";
-
     async function fileToBase64(file) {
       return new Promise((resolve, reject) => {
+        console.log(`[DEBUG] Mulai membaca file: ${file.name} (${file.size} bytes)`);
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
+        
+        reader.onload = () => {
+          console.log(`[DEBUG] Berhasil membaca file: ${file.name}`);
+          resolve(reader.result);
+        };
+        
+        reader.onerror = error => {
+          console.error(`[DEBUG] ERROR saat membaca file ${file.name}:`, error);
+          reject(error);
+        };
       });
     }
 
     async function handleFormSubmit(formObj) {
       document.getElementById('btnKirim').disabled = true;
       document.getElementById('submitLoader').style.display = 'block';
+      
+      console.log("[DEBUG] Memulai proses pengumpulan data form...");
       
       const payload = {
         action: "submitForm",
@@ -163,41 +173,63 @@
         }
       };
 
-      // Konversi file jika diisi
+      // Proses konversi file dengan Log Jelas
       try {
-        if(document.getElementById('foto').files) payload.data.foto = await fileToBase64(document.getElementById('foto').files);
-        if(document.getElementById('kk').files) payload.data.kk = await fileToBase64(document.getElementById('kk').files);
-        if(document.getElementById('akta').files) payload.data.akta = await fileToBase64(document.getElementById('akta').files);
-        if(document.getElementById('bayar').files) payload.data.bayar = await fileToBase64(document.getElementById('bayar').files);
+        const fileFoto = document.getElementById('foto').files;
+        const fileKk = document.getElementById('kk').files;
+        const fileAkta = document.getElementById('akta').files;
+        const fileBayar = document.getElementById('bayar').files;
+
+        if (fileFoto) payload.data.foto = await fileToBase64(fileFoto);
+        if (fileKk) payload.data.kk = await fileToBase64(fileKk);
+        if (fileAkta) payload.data.akta = await fileToBase64(fileAkta);
+        if (fileBayar) payload.data.bayar = await fileToBase64(fileBayar);
+
+        console.log("[DEBUG] Semua file berhasil diconvert ke Base64. Menghitung ukuran total muatan...");
+        const payloadSize = JSON.stringify(payload).length;
+        console.log(`[DEBUG] Ukuran total muatan data: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
+        
+        if (payloadSize > 40 * 1024 * 1024) { // Limit Google Apps Script biasanya sekitar 50MB
+          alert("⚠️ File terlalu besar! Total semua berkas melebihi batas 40MB. Mohon kompres gambar Anda.");
+          resetLoader();
+          return;
+        }
+
       } catch (e) {
-        alert("Gagal membaca file!");
+        console.error("[DEBUG] Proses konversi file gagal total!", e);
+        alert("Gagal membaca file! Detail error: " + e.message);
         resetLoader();
         return;
       }
 
+      console.log("[DEBUG] Mengirim data ke Google Apps Script...");
+      
       fetch(API_URL, {
         method: "POST",
         body: JSON.stringify(payload)
       })
       .then(res => res.json())
       .then(response => {
+        console.log("[DEBUG] Menerima respon dari server:", response);
         resetLoader();
         if(response.success){
           document.getElementById('noRegText').innerText = response.regNo;
-          document.getElementById('SPMBForm').classList.add('d-none');
+          document.getElementById('ppdbForm').classList.add('d-none');
           document.getElementById('alertSuccess').classList.remove('d-none');
         } else {
           alert("Gagal mendaftar: " + response.message);
         }
       }).catch(err => {
+        console.error("[DEBUG] Gagal terhubung ke Google Apps Script:", err);
         resetLoader();
-        alert("Koneksi terputus atau server error!");
+        alert("Koneksi terputus atau server error! Cek konsol browser Anda.");
       });
     }
 
     function resetLoader(){
       document.getElementById('btnKirim').disabled = false;
       document.getElementById('submitLoader').style.display = 'none';
+      console.log("[DEBUG] Status tombol dan loader di-reset.");
     }
   </script>
 </body>
