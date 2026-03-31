@@ -60,7 +60,16 @@ function handleSubmit(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
   var year = new Date().getFullYear();
   var regNo = "SPMB-" + year + "-" + ("0000" + sheet.getLastRow()).slice(-4);
-  var folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+
+  // PERBAIKAN: Menambahkan error handling untuk folder Drive
+  var folder;
+  try {
+    folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  } catch (e) {
+    // Jika folder tidak ditemukan, gunakan folder root atau buat folder baru
+    var rootFolder = DriveApp.getRootFolder();
+    folder = rootFolder.createFolder("SPMB_Uploads_" + year) || rootFolder.getFoldersByName("SPMB_Uploads_" + year).next();
+  }
   
   var urlFoto = data.foto ? uploadToDrive(data.foto, regNo + "_FOTO", folder) : "";
   var urlKk   = data.kk   ? uploadToDrive(data.kk, regNo + "_KK", folder) : "";
