@@ -573,9 +573,9 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
   Logger.log("Raw group ID: " + rawGroupId);
   Logger.log("Numbers to add: " + JSON.stringify(numbers));
 
-  // Clean group ID: remove "@g.us" suffix, keep as string
-  var cleanGroupId = rawGroupId.replace('@g.us', '');
-  Logger.log("Cleaned group ID (string): " + cleanGroupId);
+  // Try using the full group ID with @g.us as some APIs expect this format
+  var cleanGroupId = rawGroupId; // Keep the full "120363407082974441@g.us" format
+  Logger.log("Using full group ID with @g.us: " + cleanGroupId);
 
   // Normalize phone numbers
   var normalizedNumbers = numbers.map(function(num) {
