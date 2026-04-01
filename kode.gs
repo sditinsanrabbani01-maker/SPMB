@@ -725,3 +725,128 @@ function handleGetPaymentHistory() {
   }
   return result;
 }
+
+// === TEST FUNCTIONS - Run these directly in GAS Editor ===
+
+// Test function to check WhatsApp groups
+function testGetWhatsAppGroups() {
+  Logger.log("=== Testing getWhatsAppGroups ===");
+  var result = getWhatsAppGroups();
+  Logger.log("Result: " + JSON.stringify(result));
+  return result;
+}
+
+// Test function to add all mothers to group
+function testAddAllMothersToGroup() {
+  Logger.log("=== Testing addAllMothersToGroup ===");
+  var result = addAllMothersToGroup();
+  Logger.log("Result: " + JSON.stringify(result));
+  return result;
+}
+
+// Test function to check if SPMB group exists
+function testCheckSPMBGroup() {
+  Logger.log("=== Testing SPMB Group Check ===");
+  var groups = getWhatsAppGroups();
+
+  if (groups && groups.Status && groups.Data && groups.Data.groups) {
+    Logger.log("Available groups:");
+    var spmbFound = false;
+    for (var i = 0; i < groups.Data.groups.length; i++) {
+      var group = groups.Data.groups[i];
+      Logger.log("Group: " + group.name + " (ID: " + group.id + ")");
+
+      if (group.name === "SPMB 2026/2027") {
+        spmbFound = true;
+        Logger.log("✓ SPMB group found with ID: " + group.id);
+      }
+    }
+
+    if (!spmbFound) {
+      Logger.log("✗ SPMB group 'SPMB 2026/2027' not found!");
+      Logger.log("Please create the group in WhatsApp first.");
+    }
+  } else {
+    Logger.log("✗ Failed to get groups: " + JSON.stringify(groups));
+  }
+
+  return groups;
+}
+
+// Test function to check current data in sheets
+function testCheckDataSheets() {
+  Logger.log("=== Testing Data Sheets ===");
+
+  // Check Data_SPMB sheet
+  var dataSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+  if (dataSheet) {
+    var dataRows = dataSheet.getDataRange().getValues();
+    Logger.log("Data_SPMB sheet has " + (dataRows.length - 1) + " data rows");
+
+    var phoneCount = 0;
+    for (var i = 1; i < dataRows.length; i++) {
+      var hpIbu = dataRows[i][19]; // HP Ibu column
+      if (hpIbu) {
+        var normalized = normalizeWhatsAppNumber(hpIbu.toString());
+        Logger.log("Row " + i + " - Mother phone: " + hpIbu + " → " + normalized);
+        phoneCount++;
+      }
+    }
+    Logger.log("Found " + phoneCount + " mother phone numbers");
+  } else {
+    Logger.log("✗ Data_SPMB sheet not found");
+  }
+
+  // Check Pembayaran sheet
+  var paySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pembayaran");
+  if (paySheet) {
+    var payRows = paySheet.getDataRange().getValues();
+    Logger.log("Pembayaran sheet has " + (payRows.length - 1) + " payment rows");
+  } else {
+    Logger.log("✗ Pembayaran sheet not found");
+  }
+
+  // Check Settings sheet
+  var settingsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Settings");
+  if (settingsSheet) {
+    var settings = handleGetSettings();
+    Logger.log("Settings: " + JSON.stringify(settings));
+  } else {
+    Logger.log("✗ Settings sheet not found");
+  }
+}
+
+// Test function to simulate a form submission
+function testSimulateFormSubmission() {
+  Logger.log("=== Testing Form Submission Simulation ===");
+
+  var testData = {
+    nama: "Test Siswa",
+    nik: "1234567890123456",
+    nisn: "1234567890",
+    tempatLahir: "Jakarta",
+    tanggalLahir: "2015-01-01",
+    jk: "L",
+    abk: "Tidak",
+    alamat: "Jl. Test No. 123",
+    namaAyah: "Test Ayah",
+    pekerjaanAyah: "Pegawai",
+    alamatAyah: "Jl. Test No. 123",
+    gajiAyah: "5000000",
+    hpAyah: "081234567890",
+    namaIbu: "Test Ibu",
+    pekerjaanIbu: "Ibu Rumah Tangga",
+    alamatIbu: "Jl. Test No. 123",
+    gajiIbu: "0",
+    hpIbu: "081234567891",
+    namaSekolah: "SD Test",
+    npsn: "12345678",
+    alamatSekolah: "Jl. Sekolah Test"
+  };
+
+  Logger.log("Submitting test data...");
+  var result = handleSubmit(testData);
+  Logger.log("Test submission result: " + result);
+
+  return result;
+}
