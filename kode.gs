@@ -85,13 +85,6 @@ function doPost(e) {
       return createResponse({ success: true, data: contacts });
     }
 
-    // 12. Aksi Tambah Semua Nomor Ibu ke Group
-    if (action === "addAllMothersToGroup") {
-      Logger.log("Processing addAllMothersToGroup action");
-      var result = addAllMothersToGroup();
-      Logger.log("addAllMothersToGroup result: " + JSON.stringify(result));
-      return createResponse(result);
-    }
 
     // 13. Aksi Get WhatsApp Groups Info
     if (action === "getWhatsAppGroups") {
@@ -571,148 +564,6 @@ function getWhatsAppGroups() {
   }
 }
 
-// Function to add numbers to a WhatsApp group
-function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
-  Logger.log("=== addNumbersToGroup called ===");
-  Logger.log("Raw group ID: " + rawGroupId);
-  Logger.log("Numbers to add: " + JSON.stringify(numbers));
-
-  // Try using the full group ID with @g.us as some APIs expect this format
-  var cleanGroupId = rawGroupId; // Keep the full "120363407082974441@g.us" format
-  Logger.log("Using full group ID with @g.us: " + cleanGroupId);
-
-  // Normalize phone numbers
-  var normalizedNumbers = numbers.map(function(num) {
-    return normalizeWhatsAppNumber(num.toString());
-  });
-  Logger.log("Normalized numbers: " + JSON.stringify(normalizedNumbers));
-
-  // API Key from WhaCenter (Device ID)
-  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Reverted to working device ID
-  Logger.log("Using API key for addNumberToGroup: " + apiKey);
-
-  var url = "https://api.whacenter.com/api/addNumberToGroup";
-
-  for (var attempt = 1; attempt <= maxRetries; attempt++) {
-    Logger.log("Attempt " + attempt + " of " + maxRetries);
-
-    var payload = {
-      api_key: apiKey,
-      group_id: cleanGroupId, // String format without @g.us
-      numbers: normalizedNumbers
-    };
-
-    Logger.log("Payload: " + JSON.stringify(payload));
-    Logger.log("Compare with getGroup - both use same API key: " + apiKey);
-
-    var options = {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-
-    try {
-      var response = UrlFetchApp.fetch(url, options);
-      var responseCode = response.getResponseCode();
-      var responseText = response.getContentText();
-
-      Logger.log("Response code: " + responseCode);
-      Logger.log("Response text: " + responseText);
-
-      if (responseCode === 200) {
-        var result = JSON.parse(responseText);
-        Logger.log("Parsed result: " + JSON.stringify(result));
-
-        if (result.success === true) {
-          Logger.log("✅ SUCCESS: Numbers added to group");
-          return {
-            Status: true,
-            Message: result.message || "Numbers added successfully"
-          };
-        } else {
-          Logger.log("❌ API returned success=false: " + result.message);
-
-          // Check for common error types
-          if (result.message && result.message.toLowerCase().includes("not admin")) {
-            Logger.log("🔒 Permission Error: Bot is not admin of the group");
-            return {
-              Status: false,
-              Message: "Bot is not admin of the group. Make sure the WhaCenter device is added as admin."
-            };
-          }
-
-          if (result.message && result.message.toLowerCase().includes("invalid api key")) {
-            Logger.log("🔑 API Key Error: Invalid API key");
-            return {
-              Status: false,
-              Message: "Invalid API key. Check your WhaCenter API key in dashboard."
-            };
-          }
-
-          if (result.message && result.message.toLowerCase().includes("invalid group")) {
-            Logger.log("👥 Group Error: Invalid or inaccessible group");
-            return {
-              Status: false,
-              Message: "Invalid group ID or group not accessible to the device."
-            };
-          }
-
-          return {
-            Status: false,
-            Message: result.message || "Unknown API error"
-          };
-        }
-      } else if (responseCode === 401) {
-        Logger.log("🔑 Authentication Error (401): Invalid API key");
-        return {
-          Status: false,
-          Message: "Invalid API key. Please check your WhaCenter API key."
-        };
-      } else if (responseCode === 403) {
-        Logger.log("🚫 Permission Error (403): Not authorized");
-        return {
-          Status: false,
-          Message: "Not authorized. Check device permissions in WhaCenter."
-        };
-      } else if (responseCode === 404) {
-        Logger.log("🔍 Not Found (404): Group or endpoint not found");
-        return {
-          Status: false,
-          Message: "Group not found or API endpoint incorrect."
-        };
-      } else {
-        Logger.log("⚠️ HTTP Error: " + responseCode);
-        if (attempt < maxRetries) {
-          Logger.log("Retrying in 2 seconds...");
-          Utilities.sleep(2000); // Wait 2 seconds before retry
-          continue;
-        }
-        return {
-          Status: false,
-          Message: "HTTP " + responseCode + ": " + responseText
-        };
-      }
-    } catch (e) {
-      Logger.log("Network error on attempt " + attempt + ": " + e.toString());
-      if (attempt < maxRetries) {
-        Logger.log("Retrying in 2 seconds...");
-        Utilities.sleep(2000);
-        continue;
-      }
-      return {
-        Status: false,
-        Message: "Network Error: " + e.toString()
-      };
-    }
-  }
-
-  Logger.log("❌ All retry attempts failed");
-  return {
-    Status: false,
-    Message: "Failed after " + maxRetries + " attempts"
-  };
-}
 
 // Function to send group invitation to registrant when new registration is submitted
 function sendGroupInvitation(hpIbu, hpAyah, namaSiswa, noReg) {
@@ -881,69 +732,6 @@ function sendAllGroupInvitations() {
   }
 }
 
-// Function to add all existing mother's WhatsApp numbers to group
-function addAllMothersToGroup() {
-  Logger.log("=== addAllMothersToGroup called ===");
-
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
-  var rows = sheet.getDataRange().getValues();
-  var numbers = [];
-
-  Logger.log("Processing " + (rows.length - 1) + " rows from Data_SPMB sheet");
-
-  for (var i = 1; i < rows.length; i++) {
-    var hpIbu = rows[i][19]; // HP Ibu column
-    if (hpIbu) {
-      var normalizedNumber = normalizeWhatsAppNumber(hpIbu.toString());
-      Logger.log("Row " + i + " - Original: " + hpIbu + ", Normalized: " + normalizedNumber);
-      numbers.push(normalizedNumber);
-    } else {
-      Logger.log("Row " + i + " - No phone number found");
-    }
-  }
-
-  Logger.log("Found " + numbers.length + " phone numbers to add to group: " + JSON.stringify(numbers));
-
-  if (numbers.length > 0) {
-    // Get group ID for "SPMB 2026/2027"
-    Logger.log("Fetching WhatsApp groups...");
-    var groups = getWhatsAppGroups();
-    Logger.log("Groups response: " + JSON.stringify(groups));
-
-    if (groups && groups.Status && groups.Data && groups.Data.groups) {
-      Logger.log("Available groups:");
-      for (var i = 0; i < groups.Data.groups.length; i++) {
-        Logger.log("Group " + (i+1) + ": " + groups.Data.groups[i].name + " (ID: " + groups.Data.groups[i].id + ", Participants: " + groups.Data.groups[i].participants + ")");
-      }
-
-      var spmbGroup = groups.Data.groups.find(function(g) {
-        return g.name === "SPMB 2026/2027";
-      });
-
-      if (spmbGroup) {
-        Logger.log("Found SPMB group with ID: " + spmbGroup.id + ", trying to add " + numbers.length + " numbers");
-        var result = addNumbersToGroup(spmbGroup.id, numbers);
-
-        if (result && result.Status) {
-          Logger.log("✅ Successfully added " + numbers.length + " numbers to group");
-          return { success: true, message: "Berhasil menambahkan " + numbers.length + " nomor ke group WhatsApp" };
-        } else {
-          Logger.log("❌ Failed to add numbers to group: " + (result ? result.Message : "Unknown error"));
-          return { success: false, message: result ? result.Message : "Gagal menambahkan nomor ke group WhatsApp" };
-        }
-      } else {
-        Logger.log("Group 'SPMB 2026/2027' not found in available groups");
-        return { success: false, message: "Group 'SPMB 2026/2027' tidak ditemukan. Pastikan group sudah dibuat di WhatsApp dan device terhubung." };
-      }
-    } else {
-      Logger.log("Failed to get groups or no groups found. Groups object: " + JSON.stringify(groups));
-      return { success: false, message: "Gagal mendapatkan daftar group WhatsApp. Response: " + JSON.stringify(groups) };
-    }
-  } else {
-    Logger.log("No phone numbers found to add");
-    return { success: false, message: "Tidak ada nomor telepon yang ditemukan di database" };
-  }
-}
 
 function sendEmailNotification(to, subject, body) {
   try {
@@ -984,13 +772,6 @@ function testGetWhatsAppGroups() {
   return result;
 }
 
-// Test function to add all mothers to group
-function testAddAllMothersToGroup() {
-  Logger.log("=== Testing addAllMothersToGroup ===");
-  var result = addAllMothersToGroup();
-  Logger.log("Result: " + JSON.stringify(result));
-  return result;
-}
 
 // Test function to check if SPMB group exists
 function testCheckSPMBGroup() {
@@ -1131,58 +912,4 @@ function testSimulateFormSubmission() {
   Logger.log("Test submission result: " + result);
 
   return result;
-}
-
-// Test function to try different API keys
-function testAPIKeys() {
-  Logger.log("=== Testing Different API Keys ===");
-
-  var testKeys = [
-    "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946", // Current device ID
-    "290fbfb4-42a5-4497-970b-41ff78d04e42", // Alternative device ID you mentioned
-    "your_actual_api_key_here", // Replace with real API key from WhaCenter if different
-    // Add more keys to test here
-  ];
-
-  var groupId = "120363407082974441@g.us";
-  var testNumbers = ["6282196910108"];
-
-  for (var i = 0; i < testKeys.length; i++) {
-    Logger.log("Testing API key " + (i+1) + ": " + testKeys[i]);
-
-    try {
-      var url = "https://api.whacenter.com/api/addNumberToGroup";
-      var payload = {
-        api_key: testKeys[i],
-        group_id: groupId,
-        data: testNumbers
-      };
-      var options = {
-        method: "post",
-        contentType: "application/json",
-        payload: JSON.stringify(payload),
-        muteHttpExceptions: true
-      };
-
-      var response = UrlFetchApp.fetch(url, options);
-      var responseCode = response.getResponseCode();
-      var responseText = response.getContentText();
-
-      Logger.log("API Key " + testKeys[i] + " - Response code: " + responseCode);
-      Logger.log("Response: " + responseText);
-
-      if (responseCode === 200) {
-        var result = JSON.parse(responseText);
-        if (result.success) {
-          Logger.log("✅ SUCCESS! API key " + testKeys[i] + " works!");
-          return testKeys[i];
-        }
-      }
-    } catch (e) {
-      Logger.log("API Key " + testKeys[i] + " - Error: " + e.toString());
-    }
-  }
-
-  Logger.log("❌ No working API key found. Please check your WhaCenter account for the correct API key.");
-  return null;
 }
