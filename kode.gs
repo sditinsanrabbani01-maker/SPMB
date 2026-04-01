@@ -1006,6 +1006,38 @@ function testCheckSPMBGroup() {
   return groups;
 }
 
+// Test function to check group invitation link
+function testGetGroupInviteLink() {
+  Logger.log("=== Testing getGroupInviteLink ===");
+  var inviteLink = getGroupInviteLink();
+  Logger.log("Group invite link result: " + inviteLink);
+  return inviteLink;
+}
+
+// Test function to send invitation to a specific registrant
+function testSendGroupInvitation() {
+  Logger.log("=== Testing sendGroupInvitation ===");
+
+  // Test with sample data - replace with actual registrant data
+  var testHpIbu = "081234567890"; // Replace with actual number for testing
+  var testHpAyah = "081234567891"; // Replace with actual number for testing
+  var testNama = "Test Siswa";
+  var testNoReg = "SPMB-2026-0001";
+
+  Logger.log("Sending test invitation to: Mother=" + testHpIbu + ", Father=" + testHpAyah);
+  var result = sendGroupInvitation(testHpIbu, testHpAyah, testNama, testNoReg);
+  Logger.log("Test invitation result: " + result);
+  return result;
+}
+
+// Test function to send all group invitations
+function testSendAllGroupInvitations() {
+  Logger.log("=== Testing sendAllGroupInvitations ===");
+  var result = sendAllGroupInvitations();
+  Logger.log("Send all invitations result: " + JSON.stringify(result));
+  return result;
+}
+
 // Test function to check current data in sheets
 function testCheckDataSheets() {
   Logger.log("=== Testing Data Sheets ===");
