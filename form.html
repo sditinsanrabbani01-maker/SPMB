@@ -222,6 +222,46 @@
     </div>
   </div>
 
+  <!-- Contact Person Section -->
+  <div class="container my-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card card-form p-4">
+          <div class="card-body text-center">
+            <h5 class="fw-bold mb-3" style="color: #0141a4;"><i class="fas fa-headset me-2"></i>Butuh Bantuan?</h5>
+            <p class="text-muted small mb-3">Jika Anda mengalami kendala dalam proses pendaftaran, silakan hubungi Contact Person kami:</p>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body text-center py-3">
+                    <i class="fas fa-user-tie fa-2x text-primary mb-2"></i>
+                    <h6 class="card-title fw-bold mb-1">Andi Kastiar Latif</h6>
+                    <p class="text-muted small mb-2">CP1 - Panitia Pendaftaran</p>
+                    <a href="https://wa.me/62852429509270" target="_blank" class="btn btn-success btn-sm">
+                      <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body text-center py-3">
+                    <i class="fas fa-user-tie fa-2x text-primary mb-2"></i>
+                    <h6 class="card-title fw-bold mb-1">Dian Ekavianti Rusydi</h6>
+                    <p class="text-muted small mb-2">CP2 - Panitia Pendaftaran</p>
+                    <a href="https://wa.me/62852998864770" target="_blank" class="btn btn-success btn-sm">
+                      <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script>
     // Check registration status on page load
@@ -238,88 +278,294 @@
     });
   </script>
 
-  <script>
-    // Memastikan API_URL terbaca dari config.js
-    const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
+   <script>
+     // Memastikan API_URL terbaca dari config.js
+     const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
 
-    function toggleManualAddress() {
-      const select = document.getElementById('alamatSelect');
-      const manual = document.getElementById('alamatManual');
-      manual.style.display = select.value === 'lainnya' ? 'block' : 'none';
-      if (select.value === 'lainnya') {
-        manual.required = true;
-      } else {
-        manual.required = false;
-      }
-    }
+     function toggleManualAddress() {
+       const select = document.getElementById('alamatSelect');
+       const manual = document.getElementById('alamatManual');
+       manual.style.display = select.value === 'lainnya' ? 'block' : 'none';
+       if (select.value === 'lainnya') {
+         manual.required = true;
+       } else {
+         manual.required = false;
+       }
+     }
 
-    function toggleAyahAddress() {
-      const select = document.getElementById('alamatAyahSelect');
-      const manual = document.getElementById('alamatAyahManual');
-      manual.style.display = select.value === 'manual' ? 'block' : 'none';
-      if (select.value === 'manual') {
-        manual.required = true;
-      } else {
-        manual.required = false;
-      }
-    }
+     function toggleAyahAddress() {
+       const select = document.getElementById('alamatAyahSelect');
+       const manual = document.getElementById('alamatAyahManual');
+       manual.style.display = select.value === 'manual' ? 'block' : 'none';
+       if (select.value === 'manual') {
+         manual.required = true;
+       } else {
+         manual.required = false;
+       }
+     }
 
-    function toggleIbuAddress() {
-      const select = document.getElementById('alamatIbuSelect');
-      const manual = document.getElementById('alamatIbuManual');
-      manual.style.display = select.value === 'manual' ? 'block' : 'none';
-      if (select.value === 'manual') {
-        manual.required = true;
-      } else {
-        manual.required = false;
-      }
-    }
+     function toggleIbuAddress() {
+       const select = document.getElementById('alamatIbuSelect');
+       const manual = document.getElementById('alamatIbuManual');
+       manual.style.display = select.value === 'manual' ? 'block' : 'none';
+       if (select.value === 'manual') {
+         manual.required = true;
+       } else {
+         manual.required = false;
+       }
+     }
 
+     function validateForm() {
+       // Clear previous errors
+       clearErrors();
+       
+       let isValid = true;
+       
+       // Nama Lengkap
+       const nama = document.getElementById('nama').value.trim();
+       if (!nama) {
+         showError('nama', 'Nama lengkap harus diisi');
+         isValid = false;
+       } else if (nama.length < 3) {
+         showError('nama', 'Nama lengkap minimal 3 karakter');
+         isValid = false;
+       }
+       
+       // NIK
+       const nik = document.getElementById('nik').value.trim();
+       if (!nik) {
+         showError('nik', 'NIK harus diisi');
+         isValid = false;
+       } else if (!/^\d{16}$/.test(nik)) {
+         showError('nik', 'NIK harus 16 digit angka');
+         isValid = false;
+       }
+       
+       // Tempat Lahir
+       const tempatLahir = document.getElementById('tempatLahir').value.trim();
+       if (!tempatLahir) {
+         showError('tempatLahir', 'Tempat lahir harus diisi');
+         isValid = false;
+       }
+       
+       // Tanggal Lahir
+       const tanggalLahir = document.getElementById('tanggalLahir').value;
+       if (!tanggalLahir) {
+         showError('tanggalLahir', 'Tanggal lahir harus diisi');
+         isValid = false;
+       }
+       
+       // Jenis Kelamin
+       const jk = document.getElementById('jk').value;
+       if (!jk) {
+         showError('jk', 'Jenis kelamin harus dipilih');
+         isValid = false;
+       }
+       
+       // ABK
+       const abk = document.getElementById('abk').value;
+       if (!abk) {
+         showError('abk', 'Status ABK harus dipilih');
+         isValid = false;
+       }
+       
+       // Alamat
+       const alamatSelect = document.getElementById('alamatSelect').value;
+       let alamat = '';
+       if (alamatSelect === 'lainnya') {
+         alamat = document.getElementById('alamatManual').value.trim();
+         if (!alamat) {
+           showError('alamatManual', 'Alamat lengkap harus diisi');
+           isValid = false;
+         }
+       } else if (!alamatSelect) {
+         showError('alamatSelect', 'Desa/Kelurahan harus dipilih');
+         isValid = false;
+       }
+       
+       // Nama Ayah
+       const namaAyah = document.getElementById('namaAyah').value.trim();
+       if (!namaAyah) {
+         showError('namaAyah', 'Nama ayah harus diisi');
+         isValid = false;
+       }
+       
+       // Pekerjaan Ayah
+       const pekerjaanAyah = document.getElementById('pekerjaanAyah').value.trim();
+       if (!pekerjaanAyah) {
+         showError('pekerjaanAyah', 'Pekerjaan ayah harus diisi');
+         isValid = false;
+       }
+       
+       // Alamat Ayah
+       const alamatAyahSelect = document.getElementById('alamatAyahSelect').value;
+       let alamatAyah = '';
+       if (alamatAyahSelect === 'manual') {
+         alamatAyah = document.getElementById('alamatAyahManual').value.trim();
+         if (!alamatAyah) {
+           showError('alamatAyahManual', 'Alamat ayah harus diisi');
+           isValid = false;
+         }
+       } else if (!alamatAyahSelect) {
+         showError('alamatAyahSelect', 'Pilihan alamat ayah harus dipilih');
+         isValid = false;
+       }
+       
+       // Gaji Ayah
+       const gajiAyah = document.getElementById('gajiAyah').value;
+       if (!gajiAyah) {
+         showError('gajiAyah', 'Gaji ayah harus dipilih');
+         isValid = false;
+       }
+       
+       // HP Ayah
+       const hpAyah = document.getElementById('hpAyah').value.trim();
+       if (!hpAyah) {
+         showError('hpAyah', 'Nomor WhatsApp ayah harus diisi');
+         isValid = false;
+       } else if (!/^\d{10,13}$/.test(hpAyah.replace(/\D/g, ''))) {
+         showError('hpAyah', 'Nomor WhatsApp tidak valid');
+         isValid = false;
+       }
+       
+       // Nama Ibu
+       const namaIbu = document.getElementById('namaIbu').value.trim();
+       if (!namaIbu) {
+         showError('namaIbu', 'Nama ibu harus diisi');
+         isValid = false;
+       }
+       
+       // Pekerjaan Ibu
+       const pekerjaanIbu = document.getElementById('pekerjaanIbu').value.trim();
+       if (!pekerjaanIbu) {
+         showError('pekerjaanIbu', 'Pekerjaan ibu harus diisi');
+         isValid = false;
+       }
+       
+       // Alamat Ibu
+       const alamatIbuSelect = document.getElementById('alamatIbuSelect').value;
+       let alamatIbu = '';
+       if (alamatIbuSelect === 'manual') {
+         alamatIbu = document.getElementById('alamatIbuManual').value.trim();
+         if (!alamatIbu) {
+           showError('alamatIbuManual', 'Alamat ibu harus diisi');
+           isValid = false;
+         }
+       } else if (!alamatIbuSelect) {
+         showError('alamatIbuSelect', 'Pilihan alamat ibu harus dipilih');
+         isValid = false;
+       }
+       
+       // Gaji Ibu
+       const gajiIbu = document.getElementById('gajiIbu').value;
+       if (!gajiIbu) {
+         showError('gajiIbu', 'Gaji ibu harus dipilih');
+         isValid = false;
+       }
+       
+       // HP Ibu
+       const hpIbu = document.getElementById('hpIbu').value.trim();
+       if (!hpIbu) {
+         showError('hpIbu', 'Nomor WhatsApp ibu harus diisi');
+         isValid = false;
+       } else if (!/^\d{10,13}$/.test(hpIbu.replace(/\D/g, ''))) {
+         showError('hpIbu', 'Nomor WhatsApp tidak valid');
+         isValid = false;
+       }
+       
+       // At least one WhatsApp number
+       if (!hpAyah && !hpIbu) {
+         showError('hpAyah', 'Minimal satu nomor WhatsApp (ayah atau ibu) harus diisi');
+         showError('hpIbu', 'Minimal satu nomor WhatsApp (ayah atau ibu) harus diisi');
+         isValid = false;
+       }
+       
+       return isValid;
+     }
+     
+     function showError(fieldId, message) {
+       const field = document.getElementById(fieldId);
+       field.classList.add('is-invalid');
+       
+       // Remove existing error message if any
+       const existingError = document.getElementById(fieldId + '-error');
+       if (existingError) {
+         existingError.remove();
+       }
+       
+       const errorDiv = document.createElement('div');
+       errorDiv.id = fieldId + '-error';
+       errorDiv.className = 'invalid-feedback d-block';
+       errorDiv.textContent = message;
+       field.parentNode.appendChild(errorDiv);
+     }
+     
+     function clearErrors() {
+       const invalidFields = document.querySelectorAll('.is-invalid');
+       invalidFields.forEach(field => {
+         field.classList.remove('is-invalid');
+       });
+       
+       const errorDivs = document.querySelectorAll('.invalid-feedback');
+       errorDivs.forEach(div => {
+         div.remove();
+       });
+     }
 
-    async function handleFormSubmit() {
-      const btn = document.getElementById('btnKirim');
-      const loader = document.getElementById('submitLoader');
+     async function handleFormSubmit() {
+       const btn = document.getElementById('btnKirim');
+       const loader = document.getElementById('submitLoader');
 
-      btn.disabled = true;
-      loader.style.display = 'block';
+       btn.disabled = true;
+       loader.style.display = 'block';
 
+       // Comprehensive validation
+       if (!validateForm()) {
+         btn.disabled = false;
+         loader.style.display = 'none';
+         return;
+       }
 
-      // Validasi Usia (harus 6 tahun sebelum 1 Juli 2026)
-      const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
-      const batasUsia = new Date('2026-07-01');
-      const usiaDalamTahun = (batasUsia - tanggalLahir) / (365.25 * 24 * 60 * 60 * 1000);
-      if (usiaDalamTahun < 6) {
-        alert("Usia minimal harus 6 tahun sebelum 1 Juli 2026!");
-        return;
-      }
+       // Validasi Usia (harus 6 tahun sebelum 1 Juli 2026)
+       const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
+       const batasUsia = new Date('2026-07-01');
+       const usiaDalamTahun = (batasUsia - tanggalLahir) / (365.25 * 24 * 60 * 60 * 1000);
+       if (usiaDalamTahun < 6) {
+         alert("Usia minimal harus 6 tahun sebelum 1 Juli 2026!");
+         btn.disabled = false;
+         loader.style.display = 'none';
+         return;
+       }
 
-      // Validasi WhatsApp
-      let hpAyah = document.getElementById('hpAyah').value;
-      let hpIbu = document.getElementById('hpIbu').value;
-      if (!hpAyah && !hpIbu) {
-        alert("Minimal salah satu nomor WhatsApp (ayah atau ibu) harus diisi!");
-        return;
-      }
+       // Validasi WhatsApp
+       let hpAyah = document.getElementById('hpAyah').value;
+       let hpIbu = document.getElementById('hpIbu').value;
+       if (!hpAyah && !hpIbu) {
+         alert("Minimal salah satu nomor WhatsApp (ayah atau ibu) harus diisi!");
+         btn.disabled = false;
+         loader.style.display = 'none';
+         return;
+       }
 
-      // Normalize WhatsApp numbers to 62
-      function normalizeWhatsApp(num) {
-        if (!num) return '';
-        num = num.replace(/\D/g, ''); // Remove non-digits
-        if (num.startsWith('0')) {
-          num = '62' + num.substring(1);
-        } else if (!num.startsWith('62')) {
-          num = '62' + num;
-        }
-        return num;
-      }
-      hpAyah = normalizeWhatsApp(hpAyah);
-      hpIbu = normalizeWhatsApp(hpIbu);
+       // Normalize WhatsApp numbers to 62
+       function normalizeWhatsApp(num) {
+         if (!num) return '';
+         num = num.replace(/\D/g, ''); // Remove non-digits
+         if (num.startsWith('0')) {
+           num = '62' + num.substring(1);
+         } else if (!num.startsWith('62')) {
+           num = '62' + num;
+         }
+         return num;
+       }
+       hpAyah = normalizeWhatsApp(hpAyah);
+       hpIbu = normalizeWhatsApp(hpIbu);
 
-      // Ambil alamat siswa
-      let alamatSiswa = document.getElementById('alamatSelect').value;
-      if (alamatSiswa === 'lainnya') {
-        alamatSiswa = document.getElementById('alamatManual').value;
-      }
+       // Ambil alamat siswa
+       let alamatSiswa = document.getElementById('alamatSelect').value;
+       if (alamatSiswa === 'lainnya') {
+         alamatSiswa = document.getElementById('alamatManual').value;
+       }
 
       const payload = {
         action: "submitForm",
