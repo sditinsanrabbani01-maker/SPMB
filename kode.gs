@@ -595,7 +595,7 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
     var payload = {
       api_key: apiKey,
       group_id: cleanGroupId, // String format without @g.us
-      data: normalizedNumbers
+      numbers: normalizedNumbers
     };
 
     Logger.log("Payload: " + JSON.stringify(payload));
