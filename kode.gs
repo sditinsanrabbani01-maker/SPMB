@@ -512,19 +512,31 @@ function sendWhatsAppMessage(number, message) {
 // Function to get group list from WhaCenter
 function getWhatsAppGroups() {
   var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
-  var url = "https://api.whacenter.com/api/getGroup?device_id=" + deviceId;
+  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Same as device ID
+  var url = "https://api.whacenter.com/api/getGroup?device_id=" + deviceId + "&api_key=" + apiKey;
   var options = {
     method: "get",
     muteHttpExceptions: true
   };
   try {
+    Logger.log("Getting WhatsApp groups from: " + url.replace(apiKey, "***"));
     var response = UrlFetchApp.fetch(url, options);
-    var result = JSON.parse(response.getContentText());
-    Logger.log("Groups: " + JSON.stringify(result));
-    return result;
+    var responseCode = response.getResponseCode();
+    var responseText = response.getContentText();
+    Logger.log("Response code: " + responseCode);
+    Logger.log("Response text: " + responseText);
+
+    if (responseCode === 200) {
+      var result = JSON.parse(responseText);
+      Logger.log("Groups parsed successfully: " + JSON.stringify(result));
+      return result;
+    } else {
+      Logger.log("API returned error code: " + responseCode + ", response: " + responseText);
+      return { Status: false, Message: "API Error: " + responseCode + " - " + responseText };
+    }
   } catch (e) {
     Logger.log("Error getting groups: " + e.toString());
-    return null;
+    return { Status: false, Message: "Network Error: " + e.toString() };
   }
 }
 
@@ -540,16 +552,28 @@ function addNumbersToGroup(groupId, numbers) {
   var options = {
     method: "post",
     contentType: "application/json",
-    payload: JSON.stringify(payload)
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
   };
   try {
+    Logger.log("Adding numbers to group: " + groupId + ", numbers: " + JSON.stringify(numbers));
     var response = UrlFetchApp.fetch(url, options);
-    var result = JSON.parse(response.getContentText());
-    Logger.log("Add to group result: " + JSON.stringify(result));
-    return result;
+    var responseCode = response.getResponseCode();
+    var responseText = response.getContentText();
+    Logger.log("Add to group response code: " + responseCode);
+    Logger.log("Add to group response text: " + responseText);
+
+    if (responseCode === 200) {
+      var result = JSON.parse(responseText);
+      Logger.log("Add to group result parsed: " + JSON.stringify(result));
+      return result;
+    } else {
+      Logger.log("Add to group API error: " + responseCode + " - " + responseText);
+      return { Status: false, Message: "API Error: " + responseCode + " - " + responseText };
+    }
   } catch (e) {
     Logger.log("Error adding numbers to group: " + e.toString());
-    return null;
+    return { Status: false, Message: "Network Error: " + e.toString() };
   }
 }
 
