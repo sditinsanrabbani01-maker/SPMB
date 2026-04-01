@@ -1,5 +1,5 @@
 // config.js
-const CONFIG_API_URL = "https://script.google.com/macros/s/AKfycbxbkM_tJc5FWLAoJx_9xIAcWMTY1tF94GpiBZk8qjFQBJqHJrF5pqOPBH1xZJ4KMefsig/exec";
+const CONFIG_API_URL = "https://script.google.com/macros/s/AKfycbwS7UdAgISd8oDYV4BiWeC1e32wWR9IiVsiD1HvBNg99FKSmTzgS0Xzgwr0HN3W-ThMdg/exec";
 const NAMA_SEKOLAH = "SDIT INSAN RABBANI";
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
