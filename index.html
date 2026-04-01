@@ -240,30 +240,7 @@
             <h2 class="card-title fw-bold mb-4 text-primary"><i class="fas fa-headset me-2"></i>Butuh Bantuan?</h2>
             <p class="text-muted mb-4">Jika Anda mengalami kendala dalam proses pendaftaran, silakan hubungi Contact Person kami:</p>
             <div class="row justify-content-center g-4" id="cpContactContainer">
-              <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                  <div class="card-body text-center">
-                    <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
-                    <h5 class="card-title fw-bold">Andi Kastiar Latif</h5>
-                    <p class="text-muted small mb-3">CP1 - Panitia Pendaftaran</p>
-                    <a href="https://wa.me/62852429509270" target="_blank" class="btn btn-success btn-sm">
-                      <i class="fab fa-whatsapp me-1"></i>Hubungi via WhatsApp
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                  <div class="card-body text-center">
-                    <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
-                    <h5 class="card-title fw-bold">Dian Ekavianti Rusydi</h5>
-                    <p class="text-muted small mb-3">CP2 - Panitia Pendaftaran</p>
-                    <a href="https://wa.me/62852998864770" target="_blank" class="btn btn-success btn-sm">
-                      <i class="fab fa-whatsapp me-1"></i>Hubungi via WhatsApp
-                    </a>
-                  </div>
-                </div>
-              </div>
+              <!-- CP contacts will be loaded here dynamically -->
             </div>
           </div>
         </div>
@@ -496,6 +473,50 @@
       }
     }
 
+    async function loadCPContacts() {
+      try {
+        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getCPContacts" }) });
+        const result = await res.json();
+        const cpContainer = document.getElementById('cpContactContainer');
+
+        if (result.success && result.data && result.data.length > 0) {
+          let html = '';
+          result.data.forEach(contact => {
+            const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Halo%20' + encodeURIComponent(contact.name) + ',%20saya%20butuh%20bantuan%20pendaftaran%20SPMB';
+            html += `
+              <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body text-center">
+                    <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title fw-bold">${contact.name}</h5>
+                    <p class="text-muted small mb-3">${contact.description || 'Contact Person'}</p>
+                    <a href="${waLink}" target="_blank" class="btn btn-success btn-sm">
+                      <i class="fab fa-whatsapp me-1"></i>Hubungi via WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          cpContainer.innerHTML = html;
+        } else {
+          cpContainer.innerHTML = `
+            <div class="col-12 text-center">
+              <p class="text-muted">Contact Person sedang dimuat...</p>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.log('Failed to load CP contacts');
+        const cpContainer = document.getElementById('cpContactContainer');
+        cpContainer.innerHTML = `
+          <div class="col-12 text-center">
+            <p class="text-muted">Contact Person tidak dapat dimuat saat ini.</p>
+          </div>
+        `;
+      }
+    }
+
     // Event listeners for language buttons
     document.getElementById('idButton').addEventListener('click', () => setLanguage('id'));
     document.getElementById('enButton').addEventListener('click', () => setLanguage('en'));
@@ -503,6 +524,7 @@
     // Initialize with Indonesian language
     setLanguage('id');
     loadContent();
+    loadCPContacts();
    </script>
 </body>
 </html>

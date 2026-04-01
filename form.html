@@ -230,31 +230,8 @@
           <div class="card-body text-center">
             <h5 class="fw-bold mb-3" style="color: #0141a4;"><i class="fas fa-headset me-2"></i>Butuh Bantuan?</h5>
             <p class="text-muted small mb-3">Jika Anda mengalami kendala dalam proses pendaftaran, silakan hubungi Contact Person kami:</p>
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-sm">
-                  <div class="card-body text-center py-3">
-                    <i class="fas fa-user-tie fa-2x text-primary mb-2"></i>
-                    <h6 class="card-title fw-bold mb-1">Andi Kastiar Latif</h6>
-                    <p class="text-muted small mb-2">CP1 - Panitia Pendaftaran</p>
-                    <a href="https://wa.me/62852429509270" target="_blank" class="btn btn-success btn-sm">
-                      <i class="fab fa-whatsapp me-1"></i>WhatsApp
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-sm">
-                  <div class="card-body text-center py-3">
-                    <i class="fas fa-user-tie fa-2x text-primary mb-2"></i>
-                    <h6 class="card-title fw-bold mb-1">Dian Ekavianti Rusydi</h6>
-                    <p class="text-muted small mb-2">CP2 - Panitia Pendaftaran</p>
-                    <a href="https://wa.me/62852998864770" target="_blank" class="btn btn-success btn-sm">
-                      <i class="fab fa-whatsapp me-1"></i>WhatsApp
-                    </a>
-                  </div>
-                </div>
-              </div>
+            <div class="row g-3" id="cpContactContainer">
+              <!-- CP contacts will be loaded here dynamically -->
             </div>
           </div>
         </div>
@@ -275,6 +252,7 @@
       } catch (e) {
         console.log('Failed to check registration status');
       }
+      loadCPContacts();
     });
   </script>
 
@@ -619,6 +597,50 @@
       } finally {
         btn.disabled = false;
         loader.style.display = 'none';
+      }
+    }
+
+    async function loadCPContacts() {
+      try {
+        const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getCPContacts" }) });
+        const result = await res.json();
+        const cpContainer = document.getElementById('cpContactContainer');
+
+        if (result.success && result.data && result.data.length > 0) {
+          let html = '';
+          result.data.forEach(contact => {
+            const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Halo%20' + encodeURIComponent(contact.name) + ',%20saya%20butuh%20bantuan%20pendaftaran%20SPMB';
+            html += `
+              <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                  <div class="card-body text-center py-3">
+                    <i class="fas fa-user-tie fa-2x text-primary mb-2"></i>
+                    <h6 class="card-title fw-bold mb-1">${contact.name}</h6>
+                    <p class="text-muted small mb-2">${contact.description || 'Contact Person'}</p>
+                    <a href="${waLink}" target="_blank" class="btn btn-success btn-sm">
+                      <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          cpContainer.innerHTML = html;
+        } else {
+          cpContainer.innerHTML = `
+            <div class="col-12 text-center">
+              <p class="text-muted">Contact Person sedang dimuat...</p>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.log('Failed to load CP contacts');
+        const cpContainer = document.getElementById('cpContactContainer');
+        cpContainer.innerHTML = `
+          <div class="col-12 text-center">
+            <p class="text-muted">Contact Person tidak dapat dimuat saat ini.</p>
+          </div>
+        `;
       }
     }
   </script>
