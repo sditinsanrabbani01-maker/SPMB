@@ -488,11 +488,22 @@ function handleGetCPContacts() {
 function normalizeWhatsAppNumber(num) {
   if (!num) return '';
   num = num.toString().replace(/\D/g, '');
-  if (num.startsWith('0')) {
-    num = '62' + num.substring(1);
-  } else if (!num.startsWith('62')) {
-    num = '62' + num;
+
+  // For WhaCenter API, keep Indonesian local format (08xxx) instead of international (62xxx)
+  // API documentation shows examples like "081234567890"
+  if (num.startsWith('62')) {
+    // Convert international format back to local format
+    num = '0' + num.substring(2);
+  } else if (!num.startsWith('0')) {
+    // If it doesn't start with 0 or 62, assume it's without prefix and add 0
+    num = '0' + num;
   }
+
+  // Ensure it starts with 0 and has valid length
+  if (!num.startsWith('0') || num.length < 10 || num.length > 13) {
+    Logger.log("Warning: Phone number format may be invalid: " + num);
+  }
+
   return num;
 }
 
