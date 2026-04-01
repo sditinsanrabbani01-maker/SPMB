@@ -1,170 +1,284 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <title>Pengaturan Template ID Card - Admin SPMB</title>
+  <title>Canva-Style ID Card Designer - Admin SPMB</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card-custom { border: none; border-radius: 15px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .card-custom:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-    .id-card-preview { width: 350px; height: 220px; border: 2px dashed #ddd; margin: 20px auto; position: relative; background: white; }
-    .id-card-element { position: absolute; cursor: move; user-select: none; }
-    .id-card-text { font-size: 12px; color: #333; }
-    .id-card-logo { max-width: 60px; max-height: 60px; }
-    .control-panel { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-    .form-group { margin-bottom: 15px; }
-    .btn-custom { background: #0141a4; color: white; border: none; border-radius: 10px; }
-    .btn-custom:hover { background: #003080; }
+    body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow-x: hidden; }
+    .designer-container { display: flex; height: 100vh; }
+    .toolbar { width: 80px; background: #2c3e50; color: white; padding: 20px 10px; display: flex; flex-direction: column; align-items: center; }
+    .toolbar-item { width: 50px; height: 50px; margin: 5px 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; font-size: 20px; }
+    .toolbar-item:hover { background: #34495e; transform: scale(1.05); }
+    .toolbar-item.active { background: #3498db; }
+    .main-workspace { flex: 1; display: flex; flex-direction: column; }
+    .top-bar { background: white; padding: 15px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .workspace { flex: 1; display: flex; padding: 20px; }
+    .canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #f0f0f0; }
+    .id-card-canvas { width: 350px; height: 220px; border: 2px solid #3498db; position: relative; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.2); overflow: hidden; }
+    .properties-panel { width: 300px; background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; }
+    .element { position: absolute; cursor: move; user-select: none; border: 2px solid transparent; }
+    .element.selected { border-color: #3498db; box-shadow: 0 0 10px rgba(52, 152, 219, 0.5); }
+    .element:hover { border-color: #bdc3c7; }
+    .resize-handle { position: absolute; width: 10px; height: 10px; background: #3498db; border-radius: 50%; cursor: pointer; display: none; }
+    .element.selected .resize-handle { display: block; }
+    .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
+    .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
+    .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+    .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+    .text-element { font-family: Arial, sans-serif; color: #333; min-width: 50px; min-height: 20px; padding: 5px; }
+    .shape-element { background: #3498db; border-radius: 0; }
+    .image-element { max-width: 100px; max-height: 100px; }
+    .layer-item { padding: 8px 12px; border: 1px solid #ddd; margin-bottom: 5px; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .layer-item.selected { background: #e3f2fd; border-color: #2196f3; }
+    .layer-item:hover { background: #f5f5f5; }
+    .color-picker { width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+    .element-toolbar { position: absolute; top: -40px; left: 0; background: #2c3e50; color: white; padding: 5px; border-radius: 4px; display: none; font-size: 12px; }
+    .element.selected .element-toolbar { display: block; }
+    .btn-small { padding: 2px 8px; font-size: 12px; }
+    .modal-dialog { max-width: 600px; }
+    .upload-area { border: 2px dashed #bdc3c7; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; }
+    .upload-area:hover { border-color: #3498db; background: #f8f9fa; }
+    .upload-area.dragover { border-color: #27ae60; background: #d5f4e6; }
+    .zoom-controls { position: absolute; bottom: 20px; right: 20px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .zoom-slider { width: 150px; }
   </style>
 </head>
 <body>
-  <div class="container mt-4">
-    <div class="row">
-      <div class="col-12">
-        <h3 class="mb-4"><i class="fas fa-id-card me-2"></i>Pengaturan Template ID Card Siswa</h3>
+  <div class="designer-container">
+    <!-- Left Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-item" id="textTool" title="Add Text">
+        <i class="fas fa-font"></i>
+      </div>
+      <div class="toolbar-item" id="rectangleTool" title="Add Rectangle">
+        <i class="fas fa-square"></i>
+      </div>
+      <div class="toolbar-item" id="circleTool" title="Add Circle">
+        <i class="fas fa-circle"></i>
+      </div>
+      <div class="toolbar-item" id="imageTool" title="Add Image">
+        <i class="fas fa-image"></i>
+      </div>
+      <div class="toolbar-item" id="backgroundTool" title="Set Background">
+        <i class="fas fa-fill-drip"></i>
+      </div>
+      <div class="toolbar-item" id="selectTool" title="Select Tool" class="active">
+        <i class="fas fa-mouse-pointer"></i>
+      </div>
+    </div>
 
-        <div class="row">
-          <!-- Control Panel -->
-          <div class="col-md-4">
-            <div class="card card-custom">
-              <div class="card-body">
-                <h5 class="card-title">Pengaturan Template</h5>
+    <!-- Main Workspace -->
+    <div class="main-workspace">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div>
+          <h4 class="mb-0"><i class="fas fa-id-card me-2"></i>Canva-Style ID Card Designer</h4>
+          <small class="text-muted">SDIT INSAN RABBANI - Template ID Card Siswa</small>
+        </div>
+        <div>
+          <button onclick="saveTemplate()" class="btn btn-primary me-2">
+            <i class="fas fa-save me-1"></i>Save
+          </button>
+          <button onclick="loadTemplate()" class="btn btn-outline-primary me-2">
+            <i class="fas fa-upload me-1"></i>Load
+          </button>
+          <button onclick="showGenerateModal()" class="btn btn-success me-2">
+            <i class="fas fa-magic me-1"></i>Generate ID Card
+          </button>
+          <button onclick="resetCanvas()" class="btn btn-outline-danger me-2">
+            <i class="fas fa-undo me-1"></i>Reset
+          </button>
+          <a href="admin.html" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Admin
+          </a>
+        </div>
+      </div>
 
-                <div class="control-panel">
-                  <h6><i class="fas fa-image me-2"></i>Background & Logo</h6>
-                  <div class="form-group">
-                    <label for="backgroundImage" class="form-label">Upload Background ID Card</label>
-                    <input type="file" class="form-control" id="backgroundImage" accept="image/*">
-                  </div>
-                  <div class="form-group">
-                    <label for="logoImage" class="form-label">Upload Logo Sekolah</label>
-                    <input type="file" class="form-control" id="logoImage" accept="image/*">
-                  </div>
-
-                  <hr>
-
-                  <h6><i class="fas fa-font me-2"></i>Elemen Teks</h6>
-                  <div class="form-group">
-                    <label for="schoolName" class="form-label">Nama Sekolah</label>
-                    <input type="text" class="form-control" id="schoolName" value="SDIT INSAN RABBANI">
-                  </div>
-                  <div class="form-group">
-                    <label for="schoolAddress" class="form-label">Alamat Sekolah</label>
-                    <input type="text" class="form-control" id="schoolAddress" value="Jl. Contoh No. 123, Kota">
-                  </div>
-                  <div class="form-group">
-                    <label for="academicYear" class="form-label">Tahun Ajaran</label>
-                    <input type="text" class="form-control" id="academicYear" value="2026/2027">
-                  </div>
-
-                  <hr>
-
-                  <h6><i class="fas fa-cogs me-2"></i>Posisi & Ukuran</h6>
-                  <div class="form-group">
-                    <label for="logoPosition" class="form-label">Posisi Logo (X,Y)</label>
-                    <div class="row">
-                      <div class="col-6">
-                        <input type="number" class="form-control" id="logoX" placeholder="X" value="20">
-                      </div>
-                      <div class="col-6">
-                        <input type="number" class="form-control" id="logoY" placeholder="Y" value="20">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label for="textPosition" class="form-label">Posisi Teks Utama (X,Y)</label>
-                    <div class="row">
-                      <div class="col-6">
-                        <input type="number" class="form-control" id="textX" placeholder="X" value="100">
-                      </div>
-                      <div class="col-6">
-                        <input type="number" class="form-control" id="textY" placeholder="Y" value="80">
-                      </div>
-                    </div>
-                  </div>
-
-                  <hr>
-
-                  <div class="d-grid gap-2">
-                    <button onclick="saveTemplate()" class="btn btn-custom">
-                      <i class="fas fa-save me-2"></i>Simpan Template
-                    </button>
-                    <button onclick="loadTemplate()" class="btn btn-outline-primary">
-                      <i class="fas fa-upload me-2"></i>Load Template
-                    </button>
-                    <button onclick="resetTemplate()" class="btn btn-outline-danger">
-                      <i class="fas fa-undo me-2"></i>Reset
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <!-- Workspace -->
+      <div class="workspace">
+        <!-- Canvas Container -->
+        <div class="canvas-container">
+          <div class="id-card-canvas" id="idCardCanvas">
+            <!-- Canvas elements will be added here -->
           </div>
 
-          <!-- Preview Panel -->
-          <div class="col-md-8">
-            <div class="card card-custom">
-              <div class="card-body">
-                <h5 class="card-title">Preview ID Card</h5>
-                <div class="text-center">
-                  <div class="id-card-preview" id="idCardPreview">
-                    <!-- ID Card elements will be dynamically added here -->
-                  </div>
-                  <small class="text-muted mt-2 d-block">
-                    Preview ID Card - Elemen dapat dipindah dengan drag & drop
-                  </small>
-                </div>
-
-                <hr>
-
-                <h6>Test Data Siswa</h6>
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="testName" class="form-label">Nama Siswa</label>
-                      <input type="text" class="form-control" id="testName" value="Ahmad Abdullah">
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="testNoReg" class="form-label">No Registrasi</label>
-                      <input type="text" class="form-control" id="testNoReg" value="SPMB2026001">
-                    </div>
-                  </div>
-                </div>
-                <button onclick="updatePreview()" class="btn btn-outline-info mt-2">
-                  <i class="fas fa-refresh me-2"></i>Update Preview
-                </button>
-              </div>
-            </div>
-
-            <!-- Generate ID Card Section -->
-            <div class="card card-custom mt-4">
-              <div class="card-body">
-                <h5 class="card-title">Generate ID Card Siswa</h5>
-                <div class="form-group">
-                  <label for="generateNoReg" class="form-label">No Registrasi Siswa</label>
-                  <input type="text" class="form-control" id="generateNoReg" placeholder="Masukkan No Reg untuk generate ID Card">
-                </div>
-                <button onclick="generateIDCard()" class="btn btn-success">
-                  <i class="fas fa-magic me-2"></i>Generate ID Card
-                </button>
-                <div id="generatedCard" class="mt-3" style="display: none;">
-                  <div class="alert alert-success">
-                    ID Card berhasil di-generate! <a href="#" id="downloadLink" class="alert-link">Download di sini</a>
-                  </div>
-                </div>
-              </div>
+          <!-- Zoom Controls -->
+          <div class="zoom-controls">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-search-minus me-2"></i>
+              <input type="range" class="form-range zoom-slider" id="zoomSlider" min="50" max="200" value="100">
+              <i class="fas fa-search-plus ms-2"></i>
+              <span class="ms-2" id="zoomValue">100%</span>
             </div>
           </div>
         </div>
 
-        <!-- Back to Admin -->
-        <div class="mt-4">
-          <a href="admin.html" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Kembali ke Dashboard Admin
-          </a>
+        <!-- Properties Panel -->
+        <div class="properties-panel">
+          <h5 class="mb-3">Properties</h5>
+          <div id="noSelection" class="text-center text-muted">
+            <i class="fas fa-mouse-pointer fa-2x mb-2"></i>
+            <p>Select an element to edit its properties</p>
+          </div>
+
+          <!-- Text Properties -->
+          <div id="textProperties" style="display: none;">
+            <h6>Text Properties</h6>
+            <div class="mb-3">
+              <label class="form-label">Text Content</label>
+              <textarea class="form-control" id="textContent" rows="2"></textarea>
+            </div>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label">Font Size</label>
+                <input type="number" class="form-control" id="fontSize" min="8" max="72" value="12">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Font Weight</label>
+                <select class="form-control" id="fontWeight">
+                  <option value="normal">Normal</option>
+                  <option value="bold">Bold</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Font Family</label>
+              <select class="form-control" id="fontFamily">
+                <option value="Arial">Arial</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Georgia">Georgia</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Text Color</label>
+              <input type="color" class="form-control color-picker" id="textColor" value="#333333">
+            </div>
+          </div>
+
+          <!-- Shape Properties -->
+          <div id="shapeProperties" style="display: none;">
+            <h6>Shape Properties</h6>
+            <div class="mb-3">
+              <label class="form-label">Background Color</label>
+              <input type="color" class="form-control color-picker" id="shapeColor" value="#3498db">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Border Color</label>
+              <input type="color" class="form-control color-picker" id="borderColor" value="#2980b9">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Border Width</label>
+              <input type="number" class="form-control" id="borderWidth" min="0" max="10" value="0">
+            </div>
+          </div>
+
+          <!-- Image Properties -->
+          <div id="imageProperties" style="display: none;">
+            <h6>Image Properties</h6>
+            <div class="mb-3">
+              <input type="file" class="form-control" id="imageUpload" accept="image/*">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Opacity</label>
+              <input type="range" class="form-range" id="imageOpacity" min="0" max="1" step="0.1" value="1">
+            </div>
+          </div>
+
+          <!-- Position & Size -->
+          <div id="positionSize" style="display: none;">
+            <h6>Position & Size</h6>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label">X</label>
+                <input type="number" class="form-control" id="elementX" min="0">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Y</label>
+                <input type="number" class="form-control" id="elementY" min="0">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label">Width</label>
+                <input type="number" class="form-control" id="elementWidth" min="10">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Height</label>
+                <input type="number" class="form-control" id="elementHeight" min="10">
+              </div>
+            </div>
+          </div>
+
+          <!-- Layers -->
+          <div class="mt-4">
+            <h6 class="d-flex justify-content-between align-items-center">
+              Layers
+              <button onclick="deleteSelectedElement()" class="btn btn-sm btn-outline-danger" id="deleteBtn" disabled>
+                <i class="fas fa-trash"></i>
+              </button>
+            </h6>
+            <div id="layersList">
+              <!-- Layers will be added here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal fade" id="generateModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Generate ID Card Siswa</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="generateNoReg" class="form-label">No Registrasi Siswa</label>
+            <input type="text" class="form-control" id="generateNoReg" placeholder="Masukkan No Reg untuk generate ID Card">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Preview Template</label>
+            <div id="templatePreview" class="border" style="width: 100%; height: 150px; background: white; position: relative; overflow: hidden;">
+              <!-- Template preview will be shown here -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="generateIDCard()">Generate ID Card</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="backgroundModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Set Background</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="upload-area" id="backgroundUploadArea">
+            <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-muted"></i>
+            <h5>Upload Background Image</h5>
+            <p class="text-muted">Click to browse or drag and drop image here</p>
+            <input type="file" id="backgroundFile" accept="image/*" style="display: none;">
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Or choose background color:</label>
+            <input type="color" class="form-control color-picker" id="backgroundColor" value="#ffffff">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="applyBackground()">Apply Background</button>
         </div>
       </div>
     </div>
@@ -175,207 +289,757 @@
   <script>
     if(localStorage.getItem('isLogin') !== 'true') window.location.href='login.html';
 
-    let templateData = {
-      backgroundImage: null,
-      logoImage: null,
-      schoolName: 'SDIT INSAN RABBANI',
-      schoolAddress: 'Jl. Contoh No. 123, Kota',
-      academicYear: '2026/2027',
-      logoPosition: { x: 20, y: 20 },
-      textPosition: { x: 100, y: 80 }
-    };
+    // Global variables
+    let elements = [];
+    let selectedElement = null;
+    let currentTool = 'select';
+    let isDragging = false;
+    let isResizing = false;
+    let dragOffset = { x: 0, y: 0 };
+    let resizeHandle = '';
+    let canvasBackground = { type: 'color', value: '#ffffff' };
+    let zoomLevel = 100;
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
+      initializeCanvas();
+      setupEventListeners();
+      setupToolbar();
       loadTemplate();
-      updatePreview();
-      setupDragAndDrop();
+      renderLayers();
     });
 
-    // File input handlers
-    document.getElementById('backgroundImage').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          templateData.backgroundImage = e.target.result;
-          updatePreview();
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    document.getElementById('logoImage').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          templateData.logoImage = e.target.result;
-          updatePreview();
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Input change handlers
-    document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
-      input.addEventListener('input', updateTemplateData);
-    });
-
-    function updateTemplateData() {
-      templateData.schoolName = document.getElementById('schoolName').value;
-      templateData.schoolAddress = document.getElementById('schoolAddress').value;
-      templateData.academicYear = document.getElementById('academicYear').value;
-      templateData.logoPosition.x = parseInt(document.getElementById('logoX').value) || 20;
-      templateData.logoPosition.y = parseInt(document.getElementById('logoY').value) || 20;
-      templateData.textPosition.x = parseInt(document.getElementById('textX').value) || 100;
-      templateData.textPosition.y = parseInt(document.getElementById('textY').value) || 80;
-      updatePreview();
+    function initializeCanvas() {
+      const canvas = document.getElementById('idCardCanvas');
+      canvas.style.transform = `scale(${zoomLevel / 100})`;
+      canvas.style.transformOrigin = 'center center';
     }
 
-    function updatePreview() {
-      const preview = document.getElementById('idCardPreview');
-      const testName = document.getElementById('testName').value;
-      const testNoReg = document.getElementById('testNoReg').value;
+    function setupEventListeners() {
+      const canvas = document.getElementById('idCardCanvas');
 
-      // Clear previous content
-      preview.innerHTML = '';
+      // Canvas events
+      canvas.addEventListener('mousedown', handleCanvasMouseDown);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
 
-      // Set background if exists
-      if (templateData.backgroundImage) {
-        preview.style.backgroundImage = `url(${templateData.backgroundImage})`;
-        preview.style.backgroundSize = 'cover';
-        preview.style.backgroundPosition = 'center';
+      // Zoom controls
+      document.getElementById('zoomSlider').addEventListener('input', function(e) {
+        zoomLevel = parseInt(e.target.value);
+        document.getElementById('zoomValue').textContent = zoomLevel + '%';
+        updateCanvasZoom();
+      });
+
+      // Properties panel inputs
+      setupPropertiesListeners();
+
+      // Prevent context menu on canvas
+      canvas.addEventListener('contextmenu', e => e.preventDefault());
+    }
+
+    function setupToolbar() {
+      const tools = ['textTool', 'rectangleTool', 'circleTool', 'imageTool', 'backgroundTool', 'selectTool'];
+
+      tools.forEach(toolId => {
+        const tool = document.getElementById(toolId);
+        tool.addEventListener('click', function() {
+          setActiveTool(toolId.replace('Tool', ''));
+          document.querySelectorAll('.toolbar-item').forEach(t => t.classList.remove('active'));
+          tool.classList.add('active');
+        });
+      });
+    }
+
+    function setupPropertiesListeners() {
+      // Text properties
+      document.getElementById('textContent').addEventListener('input', updateSelectedElement);
+      document.getElementById('fontSize').addEventListener('input', updateSelectedElement);
+      document.getElementById('fontWeight').addEventListener('change', updateSelectedElement);
+      document.getElementById('fontFamily').addEventListener('change', updateSelectedElement);
+      document.getElementById('textColor').addEventListener('input', updateSelectedElement);
+
+      // Shape properties
+      document.getElementById('shapeColor').addEventListener('input', updateSelectedElement);
+      document.getElementById('borderColor').addEventListener('input', updateSelectedElement);
+      document.getElementById('borderWidth').addEventListener('input', updateSelectedElement);
+
+      // Image properties
+      document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
+      document.getElementById('imageOpacity').addEventListener('input', updateSelectedElement);
+
+      // Position & size
+      document.getElementById('elementX').addEventListener('input', updateElementPosition);
+      document.getElementById('elementY').addEventListener('input', updateElementPosition);
+      document.getElementById('elementWidth').addEventListener('input', updateElementSize);
+      document.getElementById('elementHeight').addEventListener('input', updateElementSize);
+    }
+
+    function setActiveTool(tool) {
+      currentTool = tool;
+      const canvas = document.getElementById('idCardCanvas');
+      canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+    }
+
+    function handleCanvasMouseDown(e) {
+      const canvas = document.getElementById('idCardCanvas');
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / (zoomLevel / 100);
+      const y = (e.clientY - rect.top) / (zoomLevel / 100);
+
+      if (currentTool === 'select') {
+        handleSelectTool(e, x, y);
       } else {
-        preview.style.backgroundImage = 'none';
-        preview.style.backgroundColor = '#f8f9fa';
+        createNewElement(currentTool, x, y);
       }
-
-      // Add logo if exists
-      if (templateData.logoImage) {
-        const logo = document.createElement('img');
-        logo.src = templateData.logoImage;
-        logo.className = 'id-card-logo id-card-element';
-        logo.style.left = templateData.logoPosition.x + 'px';
-        logo.style.top = templateData.logoPosition.y + 'px';
-        logo.draggable = false;
-        preview.appendChild(logo);
-      }
-
-      // Add text elements
-      const textContainer = document.createElement('div');
-      textContainer.className = 'id-card-element';
-      textContainer.style.left = templateData.textPosition.x + 'px';
-      textContainer.style.top = templateData.textPosition.y + 'px';
-      textContainer.innerHTML = `
-        <div class="id-card-text fw-bold">${templateData.schoolName}</div>
-        <div class="id-card-text">${templateData.schoolAddress}</div>
-        <div class="id-card-text">Tahun Ajaran: ${templateData.academicYear}</div>
-        <hr style="margin: 5px 0; border-color: #333;">
-        <div class="id-card-text"><strong>Nama:</strong> ${testName}</div>
-        <div class="id-card-text"><strong>No Reg:</strong> ${testNoReg}</div>
-        <div class="id-card-text"><strong>Status:</strong> SISWA AKTIF</div>
-      `;
-      preview.appendChild(textContainer);
     }
 
-    function setupDragAndDrop() {
-      let draggedElement = null;
-      let offsetX, offsetY;
+    function handleSelectTool(e, x, y) {
+      const clickedElement = getElementAtPosition(x, y);
 
-      document.addEventListener('mousedown', function(e) {
-        if (e.target.classList.contains('id-card-element')) {
-          draggedElement = e.target;
-          const rect = draggedElement.getBoundingClientRect();
-          offsetX = e.clientX - rect.left;
-          offsetY = e.clientY - rect.top;
-          draggedElement.style.cursor = 'grabbing';
+      if (clickedElement) {
+        selectElement(clickedElement);
+
+        // Check if clicking on resize handle
+        const handle = getResizeHandleAtPosition(e, clickedElement);
+        if (handle) {
+          isResizing = true;
+          resizeHandle = handle;
+        } else {
+          isDragging = true;
+          const rect = clickedElement.getBoundingClientRect();
+          const canvasRect = document.getElementById('idCardCanvas').getBoundingClientRect();
+          dragOffset.x = (e.clientX - canvasRect.left) / (zoomLevel / 100) - parseFloat(clickedElement.style.left || 0);
+          dragOffset.y = (e.clientY - canvasRect.top) / (zoomLevel / 100) - parseFloat(clickedElement.style.top || 0);
         }
-      });
+      } else {
+        deselectElement();
+      }
+    }
 
-      document.addEventListener('mousemove', function(e) {
-        if (draggedElement) {
-          const preview = document.getElementById('idCardPreview');
-          const previewRect = preview.getBoundingClientRect();
-          const x = e.clientX - previewRect.left - offsetX;
-          const y = e.clientY - previewRect.top - offsetY;
+    function createNewElement(type, x, y) {
+      const element = document.createElement('div');
+      element.className = 'element';
+      element.style.left = x + 'px';
+      element.style.top = y + 'px';
+      element.dataset.type = type;
+      element.dataset.id = Date.now();
 
-          draggedElement.style.left = Math.max(0, Math.min(x, previewRect.width - draggedElement.offsetWidth)) + 'px';
-          draggedElement.style.top = Math.max(0, Math.min(y, previewRect.height - draggedElement.offsetHeight)) + 'px';
-        }
-      });
+      switch (type) {
+        case 'text':
+          element.classList.add('text-element');
+          element.contentEditable = true;
+          element.textContent = 'Double click to edit';
+          element.style.fontSize = '12px';
+          element.style.color = '#333';
+          element.style.fontFamily = 'Arial';
+          element.style.fontWeight = 'normal';
+          element.style.width = '150px';
+          element.style.minHeight = '20px';
+          break;
 
-      document.addEventListener('mouseup', function(e) {
-        if (draggedElement) {
-          draggedElement.style.cursor = 'move';
-          draggedElement = null;
-          updatePositionInputs();
-        }
+        case 'rectangle':
+          element.classList.add('shape-element');
+          element.style.width = '100px';
+          element.style.height = '50px';
+          element.style.backgroundColor = '#3498db';
+          break;
+
+        case 'circle':
+          element.classList.add('shape-element');
+          element.style.width = '50px';
+          element.style.height = '50px';
+          element.style.backgroundColor = '#3498db';
+          element.style.borderRadius = '50%';
+          break;
+
+        case 'image':
+          element.classList.add('image-element');
+          element.style.width = '80px';
+          element.style.height = '80px';
+          element.style.backgroundColor = '#f0f0f0';
+          element.style.border = '2px dashed #ccc';
+          element.innerHTML = '<i class="fas fa-image" style="font-size: 24px; color: #ccc;"></i>';
+          break;
+      }
+
+      // Add resize handles
+      addResizeHandles(element);
+
+      // Add to canvas
+      document.getElementById('idCardCanvas').appendChild(element);
+      elements.push(element);
+
+      // Select the new element
+      selectElement(element);
+
+      // Reset to select tool
+      setActiveTool('select');
+      document.querySelectorAll('.toolbar-item').forEach(t => t.classList.remove('active'));
+      document.getElementById('selectTool').classList.add('active');
+
+      renderLayers();
+    }
+
+    function addResizeHandles(element) {
+      const handles = ['nw', 'ne', 'sw', 'se'];
+      handles.forEach(handle => {
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = `resize-handle ${handle}`;
+        element.appendChild(resizeHandle);
       });
     }
 
-    function updatePositionInputs() {
-      const logo = document.querySelector('.id-card-logo');
-      const textContainer = document.querySelector('.id-card-element:not(.id-card-logo)');
+    function getElementAtPosition(x, y) {
+      const canvas = document.getElementById('idCardCanvas');
+      const elements = Array.from(canvas.children).reverse(); // Check top elements first
 
-      if (logo) {
-        const logoRect = logo.getBoundingClientRect();
-        const previewRect = document.getElementById('idCardPreview').getBoundingClientRect();
-        templateData.logoPosition.x = logoRect.left - previewRect.left;
-        templateData.logoPosition.y = logoRect.top - previewRect.top;
-        document.getElementById('logoX').value = Math.round(templateData.logoPosition.x);
-        document.getElementById('logoY').value = Math.round(templateData.logoPosition.y);
+      for (const element of elements) {
+        if (element.classList.contains('element')) {
+          const rect = element.getBoundingClientRect();
+          const canvasRect = canvas.getBoundingClientRect();
+          const elementX = (rect.left - canvasRect.left) / (zoomLevel / 100);
+          const elementY = (rect.top - canvasRect.top) / (zoomLevel / 100);
+          const elementWidth = rect.width / (zoomLevel / 100);
+          const elementHeight = rect.height / (zoomLevel / 100);
+
+          if (x >= elementX && x <= elementX + elementWidth &&
+              y >= elementY && y <= elementY + elementHeight) {
+            return element;
+          }
+        }
+      }
+      return null;
+    }
+
+    function getResizeHandleAtPosition(e, element) {
+      const handles = element.querySelectorAll('.resize-handle');
+      for (const handle of handles) {
+        const rect = handle.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right &&
+            e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          return handle.classList[1]; // nw, ne, sw, se
+        }
+      }
+      return null;
+    }
+
+    function handleMouseMove(e) {
+      if (isDragging && selectedElement) {
+        const canvas = document.getElementById('idCardCanvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        let x = (e.clientX - canvasRect.left) / (zoomLevel / 100) - dragOffset.x;
+        let y = (e.clientY - canvasRect.top) / (zoomLevel / 100) - dragOffset.y;
+
+        // Constrain to canvas bounds
+        const maxX = canvas.offsetWidth - selectedElement.offsetWidth;
+        const maxY = canvas.offsetHeight - selectedElement.offsetHeight;
+        x = Math.max(0, Math.min(x, maxX));
+        y = Math.max(0, Math.min(y, maxY));
+
+        selectedElement.style.left = x + 'px';
+        selectedElement.style.top = y + 'px';
+
+        updatePropertiesPanel();
+      } else if (isResizing && selectedElement) {
+        handleResize(e);
+      }
+    }
+
+    function handleResize(e) {
+      const canvas = document.getElementById('idCardCanvas');
+      const canvasRect = canvas.getBoundingClientRect();
+      const x = (e.clientX - canvasRect.left) / (zoomLevel / 100);
+      const y = (e.clientY - canvasRect.top) / (zoomLevel / 100);
+
+      const currentX = parseFloat(selectedElement.style.left || 0);
+      const currentY = parseFloat(selectedElement.style.top || 0);
+      const currentWidth = selectedElement.offsetWidth;
+      const currentHeight = selectedElement.offsetHeight;
+
+      let newX = currentX;
+      let newY = currentY;
+      let newWidth = currentWidth;
+      let newHeight = currentHeight;
+
+      switch (resizeHandle) {
+        case 'nw':
+          newWidth = Math.max(20, currentX + currentWidth - x);
+          newHeight = Math.max(20, currentY + currentHeight - y);
+          newX = Math.min(x, currentX + currentWidth - 20);
+          newY = Math.min(y, currentY + currentHeight - 20);
+          break;
+        case 'ne':
+          newWidth = Math.max(20, x - currentX);
+          newHeight = Math.max(20, currentY + currentHeight - y);
+          newY = Math.min(y, currentY + currentHeight - 20);
+          break;
+        case 'sw':
+          newWidth = Math.max(20, currentX + currentWidth - x);
+          newHeight = Math.max(20, y - currentY);
+          newX = Math.min(x, currentX + currentWidth - 20);
+          break;
+        case 'se':
+          newWidth = Math.max(20, x - currentX);
+          newHeight = Math.max(20, y - currentY);
+          break;
       }
 
-      if (textContainer) {
-        const textRect = textContainer.getBoundingClientRect();
-        const previewRect = document.getElementById('idCardPreview').getBoundingClientRect();
-        templateData.textPosition.x = textRect.left - previewRect.left;
-        templateData.textPosition.y = textRect.top - previewRect.top;
-        document.getElementById('textX').value = Math.round(templateData.textPosition.x);
-        document.getElementById('textY').value = Math.round(templateData.textPosition.y);
+      selectedElement.style.left = newX + 'px';
+      selectedElement.style.top = newY + 'px';
+      selectedElement.style.width = newWidth + 'px';
+      selectedElement.style.height = newHeight + 'px';
+
+      updatePropertiesPanel();
+    }
+
+    function handleMouseUp() {
+      isDragging = false;
+      isResizing = false;
+      resizeHandle = '';
+    }
+
+    function selectElement(element) {
+      if (selectedElement) {
+        selectedElement.classList.remove('selected');
       }
+
+      selectedElement = element;
+      element.classList.add('selected');
+      showPropertiesForElement(element);
+      updatePropertiesPanel();
+    }
+
+    function deselectElement() {
+      if (selectedElement) {
+        selectedElement.classList.remove('selected');
+        selectedElement = null;
+      }
+
+      document.getElementById('noSelection').style.display = 'block';
+      document.getElementById('textProperties').style.display = 'none';
+      document.getElementById('shapeProperties').style.display = 'none';
+      document.getElementById('imageProperties').style.display = 'none';
+      document.getElementById('positionSize').style.display = 'none';
+      document.getElementById('deleteBtn').disabled = true;
+    }
+
+    function showPropertiesForElement(element) {
+      document.getElementById('noSelection').style.display = 'none';
+      document.getElementById('positionSize').style.display = 'block';
+      document.getElementById('deleteBtn').disabled = false;
+
+      const type = element.dataset.type;
+
+      document.getElementById('textProperties').style.display = type === 'text' ? 'block' : 'none';
+      document.getElementById('shapeProperties').style.display = (type === 'rectangle' || type === 'circle') ? 'block' : 'none';
+      document.getElementById('imageProperties').style.display = type === 'image' ? 'block' : 'none';
+    }
+
+    function updatePropertiesPanel() {
+      if (!selectedElement) return;
+
+      const rect = selectedElement.getBoundingClientRect();
+      const canvasRect = document.getElementById('idCardCanvas').getBoundingClientRect();
+
+      document.getElementById('elementX').value = Math.round(parseFloat(selectedElement.style.left || 0));
+      document.getElementById('elementY').value = Math.round(parseFloat(selectedElement.style.top || 0));
+      document.getElementById('elementWidth').value = Math.round(selectedElement.offsetWidth);
+      document.getElementById('elementHeight').value = Math.round(selectedElement.offsetHeight);
+
+      const type = selectedElement.dataset.type;
+
+      if (type === 'text') {
+        document.getElementById('textContent').value = selectedElement.textContent;
+        document.getElementById('fontSize').value = parseInt(selectedElement.style.fontSize);
+        document.getElementById('fontWeight').value = selectedElement.style.fontWeight;
+        document.getElementById('fontFamily').value = selectedElement.style.fontFamily;
+        document.getElementById('textColor').value = rgbToHex(selectedElement.style.color);
+      } else if (type === 'rectangle' || type === 'circle') {
+        document.getElementById('shapeColor').value = rgbToHex(selectedElement.style.backgroundColor);
+        document.getElementById('borderColor').value = rgbToHex(selectedElement.style.borderColor || '#2980b9');
+        document.getElementById('borderWidth').value = parseInt(selectedElement.style.borderWidth || 0);
+      } else if (type === 'image') {
+        document.getElementById('imageOpacity').value = selectedElement.style.opacity || 1;
+      }
+    }
+
+    function updateSelectedElement() {
+      if (!selectedElement) return;
+
+      const type = selectedElement.dataset.type;
+
+      if (type === 'text') {
+        selectedElement.textContent = document.getElementById('textContent').value;
+        selectedElement.style.fontSize = document.getElementById('fontSize').value + 'px';
+        selectedElement.style.fontWeight = document.getElementById('fontWeight').value;
+        selectedElement.style.fontFamily = document.getElementById('fontFamily').value;
+        selectedElement.style.color = document.getElementById('textColor').value;
+      } else if (type === 'rectangle' || type === 'circle') {
+        selectedElement.style.backgroundColor = document.getElementById('shapeColor').value;
+        selectedElement.style.borderColor = document.getElementById('borderColor').value;
+        selectedElement.style.borderWidth = document.getElementById('borderWidth').value + 'px';
+        selectedElement.style.borderStyle = document.getElementById('borderWidth').value > 0 ? 'solid' : 'none';
+      } else if (type === 'image') {
+        selectedElement.style.opacity = document.getElementById('imageOpacity').value;
+      }
+    }
+
+    function updateElementPosition() {
+      if (!selectedElement) return;
+
+      selectedElement.style.left = document.getElementById('elementX').value + 'px';
+      selectedElement.style.top = document.getElementById('elementY').value + 'px';
+    }
+
+    function updateElementSize() {
+      if (!selectedElement) return;
+
+      selectedElement.style.width = document.getElementById('elementWidth').value + 'px';
+      selectedElement.style.height = document.getElementById('elementHeight').value + 'px';
+    }
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (file && selectedElement && selectedElement.dataset.type === 'image') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          selectedElement.innerHTML = '';
+          selectedElement.style.backgroundImage = `url(${e.target.result})`;
+          selectedElement.style.backgroundSize = 'cover';
+          selectedElement.style.backgroundPosition = 'center';
+          selectedElement.style.border = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function deleteSelectedElement() {
+      if (selectedElement) {
+        const index = elements.indexOf(selectedElement);
+        if (index > -1) {
+          elements.splice(index, 1);
+        }
+        selectedElement.remove();
+        deselectElement();
+        renderLayers();
+      }
+    }
+
+    function renderLayers() {
+      const layersList = document.getElementById('layersList');
+      layersList.innerHTML = '';
+
+      // Show layers from top to bottom (reverse of elements array)
+      elements.slice().reverse().forEach((element, displayIndex) => {
+        const layerItem = document.createElement('div');
+        layerItem.className = 'layer-item' + (element === selectedElement ? ' selected' : '');
+        layerItem.onclick = () => selectElement(element);
+
+        const typeIcon = getTypeIcon(element.dataset.type);
+        const layerName = getLayerName(element);
+
+        layerItem.innerHTML = `
+          <span><i class="${typeIcon} me-2"></i>${layerName}</span>
+          <div>
+            <button class="btn btn-sm btn-outline-secondary btn-small me-1" onclick="moveLayer(${displayIndex}, 'up')" ${displayIndex === 0 ? 'disabled' : ''}>
+              <i class="fas fa-arrow-up"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary btn-small" onclick="moveLayer(${displayIndex}, 'down')" ${displayIndex === elements.length - 1 ? 'disabled' : ''}>
+              <i class="fas fa-arrow-down"></i>
+            </button>
+          </div>
+        `;
+
+        layersList.appendChild(layerItem);
+      });
+    }
+
+    function moveLayer(displayIndex, direction) {
+      // Convert display index to array index
+      const arrayIndex = elements.length - 1 - displayIndex;
+
+      if (direction === 'up' && displayIndex > 0) {
+        // Move up in display = move down in array
+        const temp = elements[arrayIndex];
+        elements[arrayIndex] = elements[arrayIndex + 1];
+        elements[arrayIndex + 1] = temp;
+      } else if (direction === 'down' && displayIndex < elements.length - 1) {
+        // Move down in display = move up in array
+        const temp = elements[arrayIndex];
+        elements[arrayIndex] = elements[arrayIndex - 1];
+        elements[arrayIndex - 1] = temp;
+      }
+
+      renderCanvas();
+      renderLayers();
+    }
+
+    function getTypeIcon(type) {
+      switch (type) {
+        case 'text': return 'fas fa-font';
+        case 'rectangle': return 'fas fa-square';
+        case 'circle': return 'fas fa-circle';
+        case 'image': return 'fas fa-image';
+        default: return 'fas fa-question';
+      }
+    }
+
+    function getLayerName(element) {
+      const type = element.dataset.type;
+      switch (type) {
+        case 'text':
+          return element.textContent.length > 20 ? element.textContent.substring(0, 20) + '...' : element.textContent;
+        case 'rectangle': return 'Rectangle';
+        case 'circle': return 'Circle';
+        case 'image': return 'Image';
+        default: return 'Element';
+      }
+    }
+
+    function moveLayerUp(originalIndex) {
+      // Convert to array index (layers are shown in reverse order)
+      const index = elements.length - 1 - originalIndex;
+      if (index < elements.length - 1) {
+        const temp = elements[index];
+        elements[index] = elements[index + 1];
+        elements[index + 1] = temp;
+        renderCanvas();
+        renderLayers();
+      }
+    }
+
+    function renderCanvas() {
+      const canvas = document.getElementById('idCardCanvas');
+      // Clear canvas except background
+      const backgroundElements = [];
+      const contentElements = [];
+
+      Array.from(canvas.children).forEach(child => {
+        if (child.classList.contains('element')) {
+          contentElements.push(child);
+        } else {
+          backgroundElements.push(child);
+        }
+      });
+
+      // Remove content elements
+      contentElements.forEach(el => el.remove());
+
+      // Re-add elements in correct order
+      elements.forEach(element => {
+        canvas.appendChild(element);
+      });
+    }
+
+    function updateCanvasZoom() {
+      const canvas = document.getElementById('idCardCanvas');
+      canvas.style.transform = `scale(${zoomLevel / 100})`;
+    }
+
+    function rgbToHex(color) {
+      if (!color || color === 'transparent') return '#000000';
+
+      // If already hex, return as is
+      if (color.startsWith('#')) return color;
+
+      // Convert rgb/rgba to hex
+      const rgb = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/);
+      if (rgb) {
+        const r = parseInt(rgb[1]);
+        const g = parseInt(rgb[2]);
+        const b = parseInt(rgb[3]);
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+      }
+
+      return '#000000';
     }
 
     function saveTemplate() {
-      localStorage.setItem('idCardTemplate', JSON.stringify(templateData));
-      alert('Template ID Card berhasil disimpan!');
+      const template = {
+        elements: elements.map(element => ({
+          id: element.dataset.id,
+          type: element.dataset.type,
+          x: parseFloat(element.style.left || 0),
+          y: parseFloat(element.style.top || 0),
+          width: element.offsetWidth,
+          height: element.offsetHeight,
+          styles: {
+            fontSize: element.style.fontSize,
+            fontWeight: element.style.fontWeight,
+            fontFamily: element.style.fontFamily,
+            color: element.style.color,
+            backgroundColor: element.style.backgroundColor,
+            borderColor: element.style.borderColor,
+            borderWidth: element.style.borderWidth,
+            borderRadius: element.style.borderRadius,
+            opacity: element.style.opacity,
+            backgroundImage: element.style.backgroundImage
+          },
+          content: element.textContent,
+          innerHTML: element.innerHTML
+        })),
+        background: canvasBackground,
+        zoomLevel: zoomLevel
+      };
+
+      localStorage.setItem('idCardDesignerTemplate', JSON.stringify(template));
+      alert('Template berhasil disimpan!');
     }
 
     function loadTemplate() {
-      const saved = localStorage.getItem('idCardTemplate');
+      const saved = localStorage.getItem('idCardDesignerTemplate');
       if (saved) {
-        templateData = JSON.parse(saved);
-        updateFormFromTemplate();
-        updatePreview();
+        const template = JSON.parse(saved);
+
+        // Clear current canvas
+        document.getElementById('idCardCanvas').innerHTML = '';
+        elements = [];
+
+        // Load background
+        canvasBackground = template.background || { type: 'color', value: '#ffffff' };
+        applyBackgroundToCanvas();
+
+        // Load zoom
+        zoomLevel = template.zoomLevel || 100;
+        document.getElementById('zoomSlider').value = zoomLevel;
+        document.getElementById('zoomValue').textContent = zoomLevel + '%';
+        updateCanvasZoom();
+
+        // Load elements
+        template.elements.forEach(elementData => {
+          const element = document.createElement('div');
+          element.className = 'element';
+          element.dataset.type = elementData.type;
+          element.dataset.id = elementData.id;
+          element.style.left = elementData.x + 'px';
+          element.style.top = elementData.y + 'px';
+          element.style.width = elementData.width + 'px';
+          element.style.height = elementData.height + 'px';
+
+          // Apply styles
+          Object.assign(element.style, elementData.styles);
+
+          // Set content
+          if (elementData.type === 'text') {
+            element.contentEditable = true;
+            element.textContent = elementData.content;
+          } else {
+            element.innerHTML = elementData.innerHTML;
+          }
+
+          // Add resize handles
+          addResizeHandles(element);
+
+          // Add to canvas
+          document.getElementById('idCardCanvas').appendChild(element);
+          elements.push(element);
+        });
+
+        renderLayers();
       }
     }
 
-    function updateFormFromTemplate() {
-      document.getElementById('schoolName').value = templateData.schoolName;
-      document.getElementById('schoolAddress').value = templateData.schoolAddress;
-      document.getElementById('academicYear').value = templateData.academicYear;
-      document.getElementById('logoX').value = templateData.logoPosition.x;
-      document.getElementById('logoY').value = templateData.logoPosition.y;
-      document.getElementById('textX').value = templateData.textPosition.x;
-      document.getElementById('textY').value = templateData.textPosition.y;
+    function resetCanvas() {
+      if (confirm('Apakah Anda yakin ingin mereset canvas? Semua elemen akan hilang.')) {
+        document.getElementById('idCardCanvas').innerHTML = '';
+        elements = [];
+        selectedElement = null;
+        canvasBackground = { type: 'color', value: '#ffffff' };
+        applyBackgroundToCanvas();
+        deselectElement();
+        renderLayers();
+      }
     }
 
-    function resetTemplate() {
-      if (confirm('Apakah Anda yakin ingin mereset template ke pengaturan default?')) {
-        templateData = {
-          backgroundImage: null,
-          logoImage: null,
-          schoolName: 'SDIT INSAN RABBANI',
-          schoolAddress: 'Jl. Contoh No. 123, Kota',
-          academicYear: '2026/2027',
-          logoPosition: { x: 20, y: 20 },
-          textPosition: { x: 100, y: 80 }
+    function applyBackgroundToCanvas() {
+      const canvas = document.getElementById('idCardCanvas');
+      if (canvasBackground.type === 'color') {
+        canvas.style.backgroundColor = canvasBackground.value;
+        canvas.style.backgroundImage = 'none';
+      } else if (canvasBackground.type === 'image') {
+        canvas.style.backgroundImage = `url(${canvasBackground.value})`;
+        canvas.style.backgroundSize = 'cover';
+        canvas.style.backgroundPosition = 'center';
+      }
+    }
+
+    // Background modal functions
+    document.getElementById('backgroundTool').addEventListener('click', function() {
+      const modal = new bootstrap.Modal(document.getElementById('backgroundModal'));
+      modal.show();
+    });
+
+    document.getElementById('backgroundUploadArea').addEventListener('click', function() {
+      document.getElementById('backgroundFile').click();
+    });
+
+    document.getElementById('backgroundFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          canvasBackground = { type: 'image', value: e.target.result };
+          applyBackgroundToCanvas();
         };
-        updateFormFromTemplate();
-        updatePreview();
-        localStorage.removeItem('idCardTemplate');
+        reader.readAsDataURL(file);
       }
+    });
+
+    function applyBackground() {
+      canvasBackground = {
+        type: 'color',
+        value: document.getElementById('backgroundColor').value
+      };
+      applyBackgroundToCanvas();
+      bootstrap.Modal.getInstance(document.getElementById('backgroundModal')).hide();
+    }
+
+    // Drag and drop for background upload
+    const uploadArea = document.getElementById('backgroundUploadArea');
+    uploadArea.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          canvasBackground = { type: 'image', value: e.target.result };
+          applyBackgroundToCanvas();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function showGenerateModal() {
+      // Show preview of template in modal
+      const preview = document.getElementById('templatePreview');
+      preview.innerHTML = '';
+
+      // Clone canvas content for preview
+      const canvas = document.getElementById('idCardCanvas');
+      const clone = canvas.cloneNode(true);
+
+      // Scale down for preview
+      clone.style.transform = 'scale(0.4)';
+      clone.style.transformOrigin = 'top left';
+      clone.style.width = (canvas.offsetWidth * 0.4) + 'px';
+      clone.style.height = (canvas.offsetHeight * 0.4) + 'px';
+
+      preview.appendChild(clone);
+
+      const modal = new bootstrap.Modal(document.getElementById('generateModal'));
+      modal.show();
     }
 
     async function generateIDCard() {
@@ -400,16 +1064,21 @@
 
         const student = result.data;
 
-        // Generate HTML for ID Card
-        const idCardHTML = generateIDCardHTML(student);
+        // Generate HTML for ID Card based on designed template
+        const idCardHTML = generateIDCardFromTemplate(student);
 
-        // For now, just show the generated card in preview
-        // In a real implementation, you might use html2canvas or similar to generate image
-        document.getElementById('generatedCard').style.display = 'block';
-        document.getElementById('downloadLink').href = 'data:text/html;charset=utf-8,' + encodeURIComponent(idCardHTML);
-        document.getElementById('downloadLink').download = `IDCard_${noReg}.html`;
+        // Create download link
+        const blob = new Blob([idCardHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `IDCard_${student.noReg}_${student.nama.replace(/\s+/g, '_')}.html`;
+        a.click();
 
-        alert('ID Card berhasil di-generate! Klik link download untuk menyimpan.');
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('generateModal')).hide();
+
+        alert(`ID Card untuk ${student.nama} berhasil di-generate dan di-download!`);
 
       } catch (error) {
         console.error('Error generating ID Card:', error);
@@ -417,36 +1086,151 @@
       }
     }
 
-    function generateIDCardHTML(student) {
-      return `
+    function generateIDCardFromTemplate(student) {
+      let html = `
         <!DOCTYPE html>
-        <html>
+        <html lang="id">
         <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>ID Card - ${student.nama}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .id-card { width: 350px; height: 220px; border: 2px solid #000; padding: 10px; margin: 0 auto; position: relative; background: white; }
-            .id-card-text { font-size: 12px; margin: 2px 0; }
-            .id-card-logo { max-width: 60px; max-height: 60px; position: absolute; top: 20px; left: 20px; }
-            .id-card-content { position: absolute; top: 80px; left: 100px; }
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              background: #f5f5f5;
+            }
+            .id-card-container {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+            }
+            .id-card {
+              width: 350px;
+              height: 220px;
+              position: relative;
+              border: 2px solid #ddd;
+              background: white;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            .print-button {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              padding: 10px 20px;
+              background: #3498db;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+            }
+            .print-button:hover {
+              background: #2980b9;
+            }
+            @media print {
+              .print-button {
+                display: none;
+              }
+              body {
+                background: white;
+                margin: 0;
+              }
+              .id-card-container {
+                min-height: auto;
+              }
+            }
           </style>
         </head>
         <body>
-          <div class="id-card">
-            ${templateData.logoImage ? `<img src="${templateData.logoImage}" class="id-card-logo" alt="Logo">` : ''}
-            <div class="id-card-content">
-              <div class="id-card-text fw-bold">${templateData.schoolName}</div>
-              <div class="id-card-text">${templateData.schoolAddress}</div>
-              <div class="id-card-text">Tahun Ajaran: ${templateData.academicYear}</div>
-              <hr style="margin: 5px 0;">
-              <div class="id-card-text"><strong>Nama:</strong> ${student.nama}</div>
-              <div class="id-card-text"><strong>No Reg:</strong> ${student.noReg}</div>
-              <div class="id-card-text"><strong>Status:</strong> SISWA AKTIF</div>
+          <button class="print-button" onclick="window.print()">Print ID Card</button>
+          <div class="id-card-container">
+            <div class="id-card" id="idCardContent">
+      `;
+
+      // Apply canvas background
+      if (canvasBackground.type === 'color') {
+        html += `      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: ${canvasBackground.value};"></div>`;
+      } else if (canvasBackground.type === 'image') {
+        html += `      <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url(${canvasBackground.value}); background-size: cover; background-position: center;"></div>`;
+      }
+
+      // Add elements
+      elements.forEach(element => {
+        const rect = element.getBoundingClientRect();
+        const canvasRect = document.getElementById('idCardCanvas').getBoundingClientRect();
+        const x = parseFloat(element.style.left || 0);
+        const y = parseFloat(element.style.top || 0);
+        const width = element.offsetWidth;
+        const height = element.offsetHeight;
+
+        let elementHTML = '';
+        const type = element.dataset.type;
+
+        if (type === 'text') {
+          // Replace placeholders with actual student data
+          let textContent = element.textContent;
+          textContent = textContent.replace(/\{\{nama\}\}/g, student.nama);
+          textContent = textContent.replace(/\{\{noReg\}\}/g, student.noReg);
+          textContent = textContent.replace(/\{\{nisn\}\}/g, student.nisn || '');
+          textContent = textContent.replace(/\{\{tempatLahir\}\}/g, student.tempatLahir || '');
+          textContent = textContent.replace(/\{\{tanggalLahir\}\}/g, student.tanggalLahir || '');
+          textContent = textContent.replace(/\{\{jk\}\}/g, student.jk || '');
+          textContent = textContent.replace(/\{\{alamat\}\}/g, student.alamat || '');
+
+          elementHTML = `<div style="
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: ${width}px;
+            height: ${height}px;
+            font-size: ${element.style.fontSize};
+            font-weight: ${element.style.fontWeight};
+            font-family: ${element.style.fontFamily};
+            color: ${element.style.color};
+            overflow: hidden;
+          ">${textContent}</div>`;
+        } else if (type === 'rectangle' || type === 'circle') {
+          const borderRadius = type === 'circle' ? '50%' : '0';
+          elementHTML = `<div style="
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: ${width}px;
+            height: ${height}px;
+            background-color: ${element.style.backgroundColor};
+            border: ${element.style.borderWidth} ${element.style.borderStyle || 'solid'} ${element.style.borderColor};
+            border-radius: ${borderRadius};
+          "></div>`;
+        } else if (type === 'image') {
+          elementHTML = `<div style="
+            position: absolute;
+            left: ${x}px;
+            top: ${y}px;
+            width: ${width}px;
+            height: ${height}px;
+            background-image: ${element.style.backgroundImage};
+            background-size: cover;
+            background-position: center;
+            opacity: ${element.style.opacity || 1};
+          "></div>`;
+        }
+
+        html += elementHTML;
+      });
+
+      html += `
             </div>
           </div>
+          <script>
+            // Auto print when loaded (optional)
+            // window.onload = function() { window.print(); };
+          </script>
         </body>
         </html>
       `;
+
+      return html;
     }
   </script>
 </body>
