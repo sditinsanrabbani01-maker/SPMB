@@ -430,11 +430,16 @@ function handleSavePayment(amount, name, status, image, filename) {
 function handleGetCPContacts() {
   try {
     var cpSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CP/Contact Person");
-    if (!cpSheet) return [];
+    if (!cpSheet) {
+      Logger.log("CP/Contact Person sheet not found");
+      return [];
+    }
     
     var rows = cpSheet.getDataRange().getValues();
+    Logger.log("CP sheet rows: " + rows.length);
     var contacts = [];
     for (var i = 1; i < rows.length; i++) {
+      Logger.log("Row " + i + ": " + JSON.stringify(rows[i]));
       if (rows[i][2]) { // Nomor Telepon
         contacts.push({
           name: rows[i][1] || "CP " + i,
@@ -443,8 +448,10 @@ function handleGetCPContacts() {
         });
       }
     }
+    Logger.log("Found " + contacts.length + " CP contacts");
     return contacts;
   } catch (e) {
+    Logger.log("Error in handleGetCPContacts: " + e.toString());
     return [];
   }
 }
