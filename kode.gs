@@ -54,7 +54,7 @@ function doPost(e) {
 
     // 8. Aksi Save Payment
     if (action === "savePayment") {
-      var save = handleSavePayment(requestData.amount, requestData.name, requestData.status, requestData.image, requestData.filename);
+      var save = handleSavePayment(requestData.amount, requestData.name, requestData.status, requestData.image, requestData.filename, requestData.notes);
       return createResponse({ success: save });
     }
 
@@ -77,6 +77,12 @@ function doPost(e) {
     if (action === "getCPContacts") {
       var contacts = handleGetCPContacts();
       return createResponse({ success: true, data: contacts });
+    }
+
+    // 12. Aksi Tambah Semua Nomor Ibu ke Group
+    if (action === "addAllMothersToGroup") {
+      addAllMothersToGroup();
+      return createResponse({ success: true, message: "Semua nomor ibu berhasil ditambahkan ke group" });
     }
 
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
@@ -131,8 +137,8 @@ function setupSheet() {
 
   var paymentSheet = ss.getSheetByName("Pembayaran") || ss.insertSheet("Pembayaran");
   if (paymentSheet.getLastRow() === 0) {
-    paymentSheet.appendRow(["Tanggal", "Nama", "Nominal", "Konfirmasi"]);
-    paymentSheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#d9ead3");
+    paymentSheet.appendRow(["Tanggal", "Nama", "Nominal", "Konfirmasi", "Catatan"]);
+    paymentSheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#d9ead3");
   }
 
   // CP/Contact Person sheet for WhatsApp notifications
@@ -168,6 +174,11 @@ function handleSubmit(data) {
     for (var i = 0; i < cpNumbers.length; i++) {
       sendWhatsAppMessage(cpNumbers[i], cpMessage);
     }
+  }
+  
+  // Add mother's WhatsApp number to group
+  if (data.hpIbu) {
+    addMotherToGroup(data.hpIbu);
   }
   
   // Send Email notification
@@ -394,9 +405,9 @@ function handleGetRegistrantDetails(noReg) {
   return null;
 }
 
-function handleSavePayment(amount, name, status, image, filename) {
+function handleSavePayment(amount, name, status, image, filename, notes) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pembayaran");
-  sheet.appendRow([new Date(), name, amount, status]);
+  sheet.appendRow([new Date(), name, amount, status, notes || ""]);
 
   var driveLink = "";
   if (image && filename) {
@@ -492,6 +503,103 @@ function sendWhatsAppMessage(number, message) {
   }
 }
 
+// Function to get group list from WhaCenter
+function getWhatsAppGroups() {
+  var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
+  var url = "https://api.whacenter.com/api/getGroup?device_id=" + deviceId;
+  var options = {
+    method: "get",
+    muteHttpExceptions: true
+  };
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    var result = JSON.parse(response.getContentText());
+    Logger.log("Groups: " + JSON.stringify(result));
+    return result;
+  } catch (e) {
+    Logger.log("Error getting groups: " + e.toString());
+    return null;
+  }
+}
+
+// Function to add numbers to a WhatsApp group
+function addNumbersToGroup(groupId, numbers) {
+  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Device ID as API key
+  var url = "https://api.whacenter.com/api/addNumberToGroup";
+  var payload = {
+    api_key: apiKey,
+    group_id: groupId,
+    data: numbers
+  };
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload)
+  };
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    var result = JSON.parse(response.getContentText());
+    Logger.log("Add to group result: " + JSON.stringify(result));
+    return result;
+  } catch (e) {
+    Logger.log("Error adding numbers to group: " + e.toString());
+    return null;
+  }
+}
+
+// Function to add mother's WhatsApp number to group when new registrant is submitted
+function addMotherToGroup(hpIbu) {
+  if (!hpIbu) return;
+  
+  // Get group ID for "SPMB 2026/2027"
+  var groups = getWhatsAppGroups();
+  if (groups && groups.Status && groups.Data && groups.Data.groups) {
+    var spmbGroup = groups.Data.groups.find(function(g) {
+      return g.name === "SPMB 2026/2027";
+    });
+    
+    if (spmbGroup) {
+      var normalizedNumber = normalizeWhatsAppNumber(hpIbu);
+      var numbers = [normalizedNumber];
+      addNumbersToGroup(spmbGroup.id, numbers);
+    } else {
+      Logger.log("Group 'SPMB 2026/2027' not found");
+    }
+  }
+}
+
+// Function to add all existing mother's WhatsApp numbers to group
+function addAllMothersToGroup() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+  var rows = sheet.getDataRange().getValues();
+  var numbers = [];
+  
+  for (var i = 1; i < rows.length; i++) {
+    var hpIbu = rows[i][19]; // HP Ibu column
+    if (hpIbu) {
+      var normalizedNumber = normalizeWhatsAppNumber(hpIbu.toString());
+      numbers.push(normalizedNumber);
+    }
+  }
+  
+  if (numbers.length > 0) {
+    // Get group ID for "SPMB 2026/2027"
+    var groups = getWhatsAppGroups();
+    if (groups && groups.Status && groups.Data && groups.Data.groups) {
+      var spmbGroup = groups.Data.groups.find(function(g) {
+        return g.name === "SPMB 2026/2027";
+      });
+      
+      if (spmbGroup) {
+        addNumbersToGroup(spmbGroup.id, numbers);
+        Logger.log("Added " + numbers.length + " numbers to group");
+      } else {
+        Logger.log("Group 'SPMB 2026/2027' not found");
+      }
+    }
+  }
+}
+
 function sendEmailNotification(to, subject, body) {
   try {
     MailApp.sendEmail({
@@ -514,7 +622,8 @@ function handleGetPaymentHistory() {
       timestamp: rows[i][0],
       name: rows[i][1],
       amount: rows[i][2],
-      status: rows[i][3]
+      status: rows[i][3],
+      notes: rows[i][4] || ""
     });
   }
   return result;

@@ -12,6 +12,7 @@
         <div id="hasil" class="mt-4"></div>
     </div></div>
 </div>
+</div>
 <script src="config.js"></script>
 <script>
     async function cekData() {
@@ -20,8 +21,53 @@
         const result = await res.json();
         const h = document.getElementById('hasil');
         if(result.success) {
-            h.innerHTML = `<div class="card p-3"><h5>${result.data.nama}</h5><p>Status: <b>${result.data.status}</b></p></div>`;
+            const d = result.data;
+            h.innerHTML = `
+                <div class="card p-4">
+                    <h5>Informasi Pendaftar</h5>
+                    <p><strong>No Registrasi:</strong> ${d.noReg}</p>
+                    <p><strong>Nama:</strong> ${d.nama}</p>
+                    <p><strong>NIK:</strong> ${d.nik}</p>
+                    <p><strong>NISN:</strong> ${d.nisn}</p>
+                    <p><strong>Tempat Lahir:</strong> ${d.tempatLahir}</p>
+                    <p><strong>Tanggal Lahir:</strong> ${d.tanggalLahir}</p>
+                    <p><strong>Jenis Kelamin:</strong> ${d.jk}</p>
+                    <p><strong>ABK:</strong> ${d.abk}</p>
+                    <p><strong>Alamat:</strong> ${d.alamat}</p>
+                    <hr>
+                    <h5>Data Ayah</h5>
+                    <p><strong>Nama:</strong> ${d.namaAyah}</p>
+                    <p><strong>Pekerjaan:</strong> ${d.pekerjaanAyah}</p>
+                    <p><strong>Alamat:</strong> ${d.alamatAyah}</p>
+                    <p><strong>Gaji:</strong> ${d.gajiAyah}</p>
+                    <p><strong>HP:</strong> ${d.hpAyah}</p>
+                    <hr>
+                    <h5>Data Ibu</h5>
+                    <p><strong>Nama:</strong> ${d.namaIbu}</p>
+                    <p><strong>Pekerjaan:</strong> ${d.pekerjaanIbu}</p>
+                    <p><strong>Alamat:</strong> ${d.alamatIbu}</p>
+                    <p><strong>Gaji:</strong> ${d.gajiIbu}</p>
+                    <p><strong>HP:</strong> ${d.hpIbu}</p>
+                    <hr>
+                    <h5>Data Sekolah Asal</h5>
+                    <p><strong>Nama Sekolah:</strong> ${d.namaSekolah}</p>
+                    <p><strong>NPSN:</strong> ${d.npsn}</p>
+                    <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
+                    <hr>
+                    <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></p>
+                </div>
+            `;
         } else { h.innerHTML = `<div class="alert alert-danger">Data tidak ditemukan</div>`; }
+    }
+    
+    function getStatusColor(status) {
+        switch(status) {
+            case 'MENUNGGU': return 'warning';
+            case 'LULUS': return 'success';
+            case 'TOLAK': return 'danger';
+            case 'ULANG': return 'secondary';
+            default: return 'primary';
+        }
     }
 </script>
 </body></html>

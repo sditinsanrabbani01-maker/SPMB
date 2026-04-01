@@ -84,6 +84,7 @@
                             <th>Nama</th>
                             <th>Nominal</th>
                             <th>Status</th>
+                            <th>Catatan</th>
                         </tr>
                     </thead>
                     <tbody id="paymentHistoryBody">
@@ -123,6 +124,12 @@
             </div>
             <button type="button" onclick="saveSettings()" class="btn btn-primary">Simpan Pengaturan</button>
         </form>
+    </div>
+
+    <div class="mb-4">
+        <h5>WhatsApp Group</h5>
+        <button onclick="addAllMothersToGroup()" class="btn btn-success">Tambah Semua Nomor Ibu ke Group WhatsApp</button>
+        <small class="form-text text-muted d-block mt-2">Menambahkan semua nomor WhatsApp ibu dari data pendaftar ke group "SPMB 2026/2027"</small>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -212,7 +219,7 @@
         function renderPaymentHistory(data) {
             const tb = document.getElementById('paymentHistoryBody');
             if (data.length === 0) {
-                tb.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada data pembayaran</td></tr>`;
+                tb.innerHTML = `<tr><td colspan="5" class="text-center">Belum ada data pembayaran</td></tr>`;
                 return;
             }
             
@@ -222,6 +229,7 @@
                     <td>${p.name}</td>
                     <td>Rp ${parseInt(p.amount).toLocaleString()}</td>
                     <td><span class="badge bg-${p.status === 'confirmed' ? 'success' : 'secondary'}">${p.status}</span></td>
+                    <td>${p.notes || '-'}</td>
                 </tr>
             `).join('');
         }
@@ -332,6 +340,25 @@
             await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_subtext", value: hero_subtext }) });
             await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "updateSettings", key: "hero_quote", value: hero_quote }) });
             alert('Pengaturan disimpan!');
+        }
+        
+        async function addAllMothersToGroup() {
+            if (!confirm('Apakah Anda yakin ingin menambahkan semua nomor ibu ke group WhatsApp?')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "addAllMothersToGroup" }) });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Semua nomor ibu berhasil ditambahkan ke group WhatsApp!');
+                } else {
+                    alert('Gagal menambahkan nomor ke group WhatsApp.');
+                }
+            } catch (error) {
+                console.error('Error adding numbers to group:', error);
+                alert('Terjadi kesalahan saat menambahkan nomor ke group WhatsApp.');
+            }
         }
         
         // Initialize

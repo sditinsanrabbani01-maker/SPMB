@@ -350,6 +350,25 @@
           }
           console.log('Parsed name:', name);
 
+          // Parse notes/comments from payment confirmation
+          const notePatterns = [
+            /Catatan\s*[:.]?\s*([^\n]+)/i,
+            /Keterangan\s*[:.]?\s*([^\n]+)/i,
+            /Note\s*[:.]?\s*([^\n]+)/i,
+            /Berita\s*[:.]?\s*([^\n]+)/i
+          ];
+          let notes = '';
+          for (const pattern of notePatterns) {
+            const match = text.match(pattern);
+            if (match) {
+              notes = match[1].trim();
+              // Take only the first line if multiline
+              notes = notes.split('\n')[0].trim();
+              break;
+            }
+          }
+          console.log('Parsed notes:', notes);
+
           if (amount >= 100000) {
             // Convert image to base64
             const reader = new FileReader();
@@ -357,7 +376,7 @@
               try {
                 const base64 = e.target.result.split(',')[1];
                 // Save to GAS with image
-                const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name }) });
+                const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name, notes: notes }) });
                 const result = await res.json();
                 if (result.success) {
                   document.getElementById('transactionName').textContent = name;
