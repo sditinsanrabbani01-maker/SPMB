@@ -128,8 +128,12 @@
 
     <div class="mb-4">
         <h5>WhatsApp Group</h5>
-        <button onclick="addAllMothersToGroup()" class="btn btn-success">Tambah Semua Nomor Ibu ke Group WhatsApp</button>
-        <small class="form-text text-muted d-block mt-2">Menambahkan semua nomor WhatsApp ibu dari data pendaftar ke group "SPMB 2026/2027"</small>
+        <div class="d-flex gap-2 mb-2">
+            <button onclick="addAllMothersToGroup()" class="btn btn-success">Tambah Semua Nomor Ibu ke Group WhatsApp</button>
+            <button onclick="checkWhatsAppGroups()" class="btn btn-info">Cek Group WhatsApp</button>
+        </div>
+        <small class="form-text text-muted d-block">Menambahkan semua nomor WhatsApp ibu dari data pendaftar ke group "SPMB 2026/2027"</small>
+        <div id="groupInfo" class="mt-2" style="display: none;"></div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -346,18 +350,57 @@
             if (!confirm('Apakah Anda yakin ingin menambahkan semua nomor ibu ke group WhatsApp?')) {
                 return;
             }
-            
+
             try {
                 const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "addAllMothersToGroup" }) });
                 const result = await res.json();
                 if (result.success) {
-                    alert('Semua nomor ibu berhasil ditambahkan ke group WhatsApp!');
+                    alert(result.message || 'Semua nomor ibu berhasil ditambahkan ke group WhatsApp!');
                 } else {
-                    alert('Gagal menambahkan nomor ke group WhatsApp.');
+                    alert('Error: ' + (result.message || 'Gagal menambahkan nomor ke group WhatsApp.'));
                 }
             } catch (error) {
                 console.error('Error adding numbers to group:', error);
                 alert('Terjadi kesalahan saat menambahkan nomor ke group WhatsApp.');
+            }
+        }
+
+        async function checkWhatsAppGroups() {
+            try {
+                const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getWhatsAppGroups" }) });
+                const result = await res.json();
+
+                const groupInfo = document.getElementById('groupInfo');
+                if (result.success && result.data) {
+                    let html = '<div class="alert alert-info"><h6>Group WhatsApp yang tersedia:</h6>';
+                    if (result.data.Status && result.data.Data && result.data.Data.groups) {
+                        result.data.Data.groups.forEach(group => {
+                            const isSpmbGroup = group.name === "SPMB 2026/2027";
+                            html += `<div class="mb-1 ${isSpmbGroup ? 'fw-bold text-success' : ''}">`;
+                            html += `• ${group.name} (ID: ${group.id}, ${group.participants} peserta)`;
+                            html += isSpmbGroup ? ' ← Target Group' : '';
+                            html += '</div>';
+                        });
+
+                        const spmbGroup = result.data.Data.groups.find(g => g.name === "SPMB 2026/2027");
+                        if (!spmbGroup) {
+                            html += '<div class="mt-2 text-warning">⚠️ Group "SPMB 2026/2027" tidak ditemukan. Pastikan group sudah dibuat di WhatsApp.</div>';
+                        }
+                    } else {
+                        html += '<div>Gagal mendapatkan data group</div>';
+                    }
+                    html += '</div>';
+                    groupInfo.innerHTML = html;
+                    groupInfo.style.display = 'block';
+                } else {
+                    groupInfo.innerHTML = '<div class="alert alert-danger">Gagal mengambil informasi group WhatsApp</div>';
+                    groupInfo.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error checking groups:', error);
+                const groupInfo = document.getElementById('groupInfo');
+                groupInfo.innerHTML = '<div class="alert alert-danger">Terjadi kesalahan saat mengecek group WhatsApp</div>';
+                groupInfo.style.display = 'block';
             }
         }
         

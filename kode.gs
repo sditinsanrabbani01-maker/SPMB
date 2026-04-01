@@ -81,8 +81,14 @@ function doPost(e) {
 
     // 12. Aksi Tambah Semua Nomor Ibu ke Group
     if (action === "addAllMothersToGroup") {
-      addAllMothersToGroup();
-      return createResponse({ success: true, message: "Semua nomor ibu berhasil ditambahkan ke group" });
+      var result = addAllMothersToGroup();
+      return createResponse(result);
+    }
+
+    // 13. Aksi Get WhatsApp Groups Info
+    if (action === "getWhatsAppGroups") {
+      var groups = getWhatsAppGroups();
+      return createResponse({ success: true, data: groups });
     }
 
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
@@ -550,20 +556,21 @@ function addNumbersToGroup(groupId, numbers) {
 // Function to add mother's WhatsApp number to group when new registrant is submitted
 function addMotherToGroup(hpIbu) {
   if (!hpIbu) return;
-  
+
   // Get group ID for "SPMB 2026/2027"
   var groups = getWhatsAppGroups();
   if (groups && groups.Status && groups.Data && groups.Data.groups) {
     var spmbGroup = groups.Data.groups.find(function(g) {
       return g.name === "SPMB 2026/2027";
     });
-    
+
     if (spmbGroup) {
       var normalizedNumber = normalizeWhatsAppNumber(hpIbu);
       var numbers = [normalizedNumber];
-      addNumbersToGroup(spmbGroup.id, numbers);
+      var result = addNumbersToGroup(spmbGroup.id, numbers);
+      Logger.log("Added new registrant to group: " + normalizedNumber + ", result: " + JSON.stringify(result));
     } else {
-      Logger.log("Group 'SPMB 2026/2027' not found");
+      Logger.log("Group 'SPMB 2026/2027' not found - cannot add new registrant");
     }
   }
 }
@@ -573,7 +580,7 @@ function addAllMothersToGroup() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
   var rows = sheet.getDataRange().getValues();
   var numbers = [];
-  
+
   for (var i = 1; i < rows.length; i++) {
     var hpIbu = rows[i][19]; // HP Ibu column
     if (hpIbu) {
@@ -581,22 +588,46 @@ function addAllMothersToGroup() {
       numbers.push(normalizedNumber);
     }
   }
-  
+
+  Logger.log("Found " + numbers.length + " phone numbers to add to group");
+
   if (numbers.length > 0) {
     // Get group ID for "SPMB 2026/2027"
     var groups = getWhatsAppGroups();
+    Logger.log("Groups response: " + JSON.stringify(groups));
+
     if (groups && groups.Status && groups.Data && groups.Data.groups) {
+      Logger.log("Available groups:");
+      for (var i = 0; i < groups.Data.groups.length; i++) {
+        Logger.log("Group: " + groups.Data.groups[i].name + " (ID: " + groups.Data.groups[i].id + ")");
+      }
+
       var spmbGroup = groups.Data.groups.find(function(g) {
         return g.name === "SPMB 2026/2027";
       });
-      
+
       if (spmbGroup) {
-        addNumbersToGroup(spmbGroup.id, numbers);
-        Logger.log("Added " + numbers.length + " numbers to group");
+        Logger.log("Found SPMB group with ID: " + spmbGroup.id);
+        var result = addNumbersToGroup(spmbGroup.id, numbers);
+        Logger.log("Add to group result: " + JSON.stringify(result));
+        if (result && result.Status) {
+          Logger.log("Successfully added " + numbers.length + " numbers to group");
+          return { success: true, message: "Berhasil menambahkan " + numbers.length + " nomor ke group WhatsApp" };
+        } else {
+          Logger.log("Failed to add numbers to group");
+          return { success: false, message: "Gagal menambahkan nomor ke group WhatsApp" };
+        }
       } else {
         Logger.log("Group 'SPMB 2026/2027' not found");
+        return { success: false, message: "Group 'SPMB 2026/2027' tidak ditemukan. Pastikan group sudah dibuat di WhatsApp." };
       }
+    } else {
+      Logger.log("Failed to get groups or no groups found");
+      return { success: false, message: "Gagal mendapatkan daftar group WhatsApp" };
     }
+  } else {
+    Logger.log("No phone numbers found to add");
+    return { success: false, message: "Tidak ada nomor telepon yang ditemukan" };
   }
 }
 
