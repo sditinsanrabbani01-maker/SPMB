@@ -297,12 +297,18 @@
           // Parse amount - look for Rp followed by number or just numbers
           // More robust regex to handle various formats
           const rpMatch = text.match(/Rp\s*(\d{1,3}(?:[.,]\d{3})*)/i);
+          const nominalMatch = text.match(/Nominal\s*Rp\s*(\d{1,3}(?:[.,]\d{3})*)/i);
           const numMatch = text.match(/(\d{1,3}(?:[.,]\d{3})*)/g);
           let amount = 0;
           console.log('Rp match:', rpMatch);
+          console.log('Nominal match:', nominalMatch);
           console.log('Num matches:', numMatch);
           
-          if (rpMatch) {
+          if (nominalMatch) {
+            // Prefer "Nominal Rp" pattern which is more reliable
+            amount = parseInt(nominalMatch[1].replace(/[.,]/g, ''));
+            console.log('Amount from Nominal match:', amount);
+          } else if (rpMatch) {
             // Use the first Rp match which is usually the main amount
             amount = parseInt(rpMatch[1].replace(/[.,]/g, ''));
             console.log('Amount from Rp match:', amount);
@@ -324,6 +330,7 @@
             /Nama Pengirim\s*([^\n]+)/i,
             /Sumber Dana\s*([^\n]+)/i,
             /Dari\s+\d+\s+([^\n]+)/i, // Pattern for "Dari 9 Tanty Junialta"
+            /D\s*aam\s*:\s*([^\n]+)/i, // Pattern for BRILink "D aam : ..."
             /Nama\s*:\s*([^\n]+)/i,
             /Atas Nama\s*:\s*([^\n]+)/i
           ];
@@ -333,9 +340,11 @@
             if (match) {
               name = match[1].trim();
               // Remove any leading numbers or special characters
-              name = name.replace(/^[\d\s\-\@]+/, '').trim();
+              name = name.replace(/^[\d\s\-\@\/]+/, '').trim();
               // Take only the first line if multiline
               name = name.split('\n')[0].trim();
+              // Remove common suffixes like "SPMB SD IT INSAN RABBANI"
+              name = name.replace(/\s*SPMB\s*SD\s*IT\s*INSAN\s*RABBANI.*$/i, '').trim();
               break;
             }
           }
