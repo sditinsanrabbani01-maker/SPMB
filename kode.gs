@@ -498,7 +498,7 @@ function normalizeWhatsAppNumber(num) {
 
 function sendWhatsAppMessage(number, message) {
   var normalizedNumber = normalizeWhatsAppNumber(number);
-  var deviceId = "290fbfb4-42a5-4497-970b-41ff78d04e42";
+  var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
   var url = "https://api.whacenter.com/api/send";
   var payload = {
     device_id: deviceId,
@@ -523,8 +523,8 @@ function sendWhatsAppMessage(number, message) {
 
 // Function to get group list from WhaCenter
 function getWhatsAppGroups() {
-  var deviceId = "290fbfb4-42a5-4497-970b-41ff78d04e42";
-  var apiKey = "290fbfb4-42a5-4497-970b-41ff78d04e42"; // Same as device ID
+  var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
+  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Same as device ID
   var url = "https://api.whacenter.com/api/getGroup?device_id=" + deviceId + "&api_key=" + apiKey;
   var options = {
     method: "get",
@@ -584,7 +584,7 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
   Logger.log("Normalized numbers: " + JSON.stringify(normalizedNumbers));
 
   // API Key from WhaCenter (Device ID)
-  var apiKey = "290fbfb4-42a5-4497-970b-41ff78d04e42"; // Updated device ID
+  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Reverted to working device ID
 
   var url = "https://api.whacenter.com/api/addNumberToGroup";
 
@@ -955,7 +955,8 @@ function testAPIKeys() {
   Logger.log("=== Testing Different API Keys ===");
 
   var testKeys = [
-    "290fbfb4-42a5-4497-970b-41ff78d04e42", // Current device ID
+    "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946", // Current device ID
+    "290fbfb4-42a5-4497-970b-41ff78d04e42", // Alternative device ID you mentioned
     "your_actual_api_key_here", // Replace with real API key from WhaCenter if different
     // Add more keys to test here
   ];
