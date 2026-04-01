@@ -591,7 +591,16 @@ function addMotherToGroup(hpIbu) {
     if (spmbGroup) {
       var normalizedNumber = normalizeWhatsAppNumber(hpIbu);
       var numbers = [normalizedNumber];
+      // Try using the full group ID string first, if it fails, try extracting numeric part
       var result = addNumbersToGroup(spmbGroup.id, numbers);
+      if (!result || !result.Status) {
+        Logger.log("Full group ID failed, trying numeric extraction");
+        // Extract numeric part from group ID like "120363123456789012@g.us" -> 120363123456789012
+        var numericId = spmbGroup.id.replace('@g.us', '').replace(/\D/g, '');
+        if (numericId) {
+          result = addNumbersToGroup(parseInt(numericId), numbers);
+        }
+      }
       Logger.log("Added new registrant to group: " + normalizedNumber + ", result: " + JSON.stringify(result));
     } else {
       Logger.log("Group 'SPMB 2026/2027' not found - cannot add new registrant");
@@ -632,7 +641,16 @@ function addAllMothersToGroup() {
 
       if (spmbGroup) {
         Logger.log("Found SPMB group with ID: " + spmbGroup.id);
+        // Try using the full group ID string first, if it fails, try extracting numeric part
         var result = addNumbersToGroup(spmbGroup.id, numbers);
+        if (!result || !result.Status) {
+          Logger.log("Full group ID failed, trying numeric extraction");
+          // Extract numeric part from group ID like "120363123456789012@g.us" -> 120363123456789012
+          var numericId = spmbGroup.id.replace('@g.us', '').replace(/\D/g, '');
+          if (numericId) {
+            result = addNumbersToGroup(parseInt(numericId), numbers);
+          }
+        }
         Logger.log("Add to group result: " + JSON.stringify(result));
         if (result && result.Status) {
           Logger.log("Successfully added " + numbers.length + " numbers to group");
