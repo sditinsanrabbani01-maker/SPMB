@@ -478,27 +478,23 @@
 
     async function loadCPContacts() {
       try {
-        console.log('Loading CP contacts from:', URL_GAS);
         const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getCPContacts" }) });
-        console.log('CP contacts response status:', res.status);
         const result = await res.json();
-        console.log('CP contacts result:', result);
         const cpContainer = document.getElementById('cpContactContainer');
 
         if (result.success && result.data && result.data.length > 0) {
-          console.log('Found', result.data.length, 'CP contacts');
           let html = '';
           result.data.forEach(contact => {
             const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Halo%20' + encodeURIComponent(contact.name) + ',%20saya%20butuh%20bantuan%20pendaftaran%20SPMB';
             html += `
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="card h-100 border-0 shadow-sm">
-                  <div class="card-body text-center">
-                    <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
-                    <h5 class="card-title fw-bold">${contact.name}</h5>
-                    <p class="text-muted small mb-3">${contact.description || 'Contact Person'}</p>
+                  <div class="card-body text-center py-3">
+                    <i class="fas fa-user-tie fa-2x text-primary mb-2"></i>
+                    <h6 class="card-title fw-bold mb-1">${contact.name}</h6>
+                    <p class="text-muted small mb-2">${contact.description || 'Contact Person'}</p>
                     <a href="${waLink}" target="_blank" class="btn btn-success btn-sm">
-                      <i class="fab fa-whatsapp me-1"></i>Hubungi via WhatsApp
+                      <i class="fab fa-whatsapp me-1"></i>WhatsApp
                     </a>
                   </div>
                 </div>
@@ -507,7 +503,6 @@
           });
           cpContainer.innerHTML = html;
         } else {
-          console.log('No CP contacts found or API returned error');
           cpContainer.innerHTML = `
             <div class="col-12 text-center">
               <p class="text-muted">Contact Person sedang dimuat...</p>
@@ -515,7 +510,7 @@
           `;
         }
       } catch (e) {
-        console.log('Failed to load CP contacts:', e);
+        console.log('Failed to load CP contacts');
         const cpContainer = document.getElementById('cpContactContainer');
         cpContainer.innerHTML = `
           <div class="col-12 text-center">
@@ -531,17 +526,8 @@
 
     // Check registration status and load content on page load
     window.addEventListener('DOMContentLoaded', async () => {
-      console.log('DOMContentLoaded fired, URL_GAS:', URL_GAS);
       loadContent();
-      // Small delay to ensure config is loaded
-      setTimeout(() => {
-        console.log('Loading CP contacts after timeout, URL_GAS:', URL_GAS);
-        try {
-          loadCPContacts();
-        } catch (error) {
-          console.error('Error calling loadCPContacts:', error);
-        }
-      }, 500);
+      loadCPContacts();
     });
 
     // Initialize with Indonesian language
