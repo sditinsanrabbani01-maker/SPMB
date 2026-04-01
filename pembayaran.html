@@ -60,16 +60,20 @@
 
             <div class="mt-4">
               <!-- Upload Section -->
-              <div id="uploadSection">
-                <h6 class="text-muted mb-3">Upload Bukti Pembayaran untuk Verifikasi Otomatis:</h6>
-                <div class="mb-3">
-                  <input type="file" id="buktiPembayaran" class="form-control" accept="image/*">
-                </div>
-                <button onclick="processPayment()" class="btn btn-success btn-lg px-5 mb-3" id="btnProcess">
-                  <i class="fas fa-upload me-2"></i>Konfirmasi Pembayaran
-                </div>
-                <div id="statusDiv"></div>
-              </div>
+             <div id="uploadSection">
+                 <h6 class="text-muted mb-3">Upload Bukti Pembayaran untuk Verifikasi Otomatis:</h6>
+                 <div class="mb-3">
+                   <input type="file" id="buktiPembayaran" class="form-control" accept="image/*">
+                 </div>
+                 <div id="imagePreview" class="mb-3" style="display: none; max-width: 100%; height: auto;">
+                   <img id="previewImage" class="img-fluid rounded" alt="Preview">
+                 </div>
+                 <div id="fileError" class="text-danger mb-3" style="display: none;"></div>
+                 <button onclick="processPayment()" class="btn btn-success btn-lg px-5 mb-3" id="btnProcess">
+                   <i class="fas fa-upload me-2"></i>Konfirmasi Pembayaran
+                 </div>
+                 <div id="statusDiv"></div>
+               </div>
               
               <!-- Transaction Confirmation Section (initially hidden) -->
               <div id="transactionSection" class="d-none">
@@ -99,11 +103,25 @@
                     </div>
                     <div class="col-md-9" id="transactionStatus"></div>
                   </div>
+                  <div class="row mt-2" id="driveLinkRow" style="display: none;">
+                    <div class="col-md-3">
+                      <strong>Link Bukti:</strong>
+                    </div>
+                    <div class="col-md-9" id="driveLink"></div>
+                  </div>
                 </div>
-                <div class="mt-4">
+                <div class="mt-4" id="formButtonContainer" style="display: none;">
                   <a href="form.html" class="btn btn-success btn-lg px-5">
                     <i class="fas fa-arrow-right me-2"></i>Lanjutkan ke Formulir Pendaftaran
                   </a>
+                </div>
+                <!-- Manual Confirmation Section (shown when auto confirmation fails) -->
+                <div id="manualConfirmationSection" class="mt-4" style="display: none;">
+                  <div class="alert alert-warning">
+                    <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Otomatis Gagal</h6>
+                    <p class="mb-3">Sistem tidak dapat membaca bukti pembayaran secara otomatis. Silakan lakukan konfirmasi manual melalui WhatsApp:</p>
+                    <div id="cpContactInfo"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -192,98 +210,199 @@
       document.body.appendChild(popup);
     }
 
-    async function processPayment() {
-      const fileInput = document.getElementById('buktiPembayaran');
-      const statusDiv = document.getElementById('statusDiv');
-      const btn = document.getElementById('btnProcess');
-      const uploadSection = document.getElementById('uploadSection');
-      const transactionSection = document.getElementById('transactionSection');
-      if (!fileInput.files[0]) {
-        showErrorPopup('Pilih file gambar terlebih dahulu.');
-        return;
-      }
-      btn.disabled = true;
-      uploadSection.classList.add('d-none');
-      transactionSection.classList.remove('d-none');
-      document.getElementById('transactionDate').textContent = new Date().toLocaleString();
-      document.getElementById('transactionName').textContent = 'Memproses...';
-      document.getElementById('transactionAmount').textContent = 'Memproses...';
-      document.getElementById('transactionStatus').textContent = 'Memproses...';
+     // Image preview and validation
+     const fileInput = document.getElementById('buktiPembayaran');
+     const imagePreview = document.getElementById('imagePreview');
+     const previewImage = document.getElementById('previewImage');
+     const fileError = document.getElementById('fileError');
 
-      try {
-        const { data: { text } } = await Tesseract.recognize(fileInput.files[0], 'ind');
-        console.log('Extracted text:', text);
+     fileInput.addEventListener('change', function() {
+       const file = this.files[0];
+       if (file) {
+         // Validate file type
+         const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+         if (!allowedTypes.includes(file.type)) {
+           fileError.textContent = 'Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.';
+           fileError.style.display = 'block';
+           imagePreview.style.display = 'none';
+           this.value = ''; // Clear selection
+           return;
+         }
+         
+         // Validate file size (5MB max)
+         if (file.size > 5 * 1024 * 1024) {
+           fileError.textContent = 'Ukuran file terlalu besar. Maksimal 5 MB.';
+           fileError.style.display = 'block';
+           imagePreview.style.display = 'none';
+           this.value = ''; // Clear selection
+           return;
+         }
+         
+         // Show preview
+         fileError.style.display = 'none';
+         imagePreview.style.display = 'block';
+         previewImage.src = URL.createObjectURL(file);
+       } else {
+         imagePreview.style.display = 'none';
+         fileError.style.display = 'none';
+       }
+     });
 
-        // Parse amount - look for Rp followed by number or just numbers
-        const rpMatch = text.match(/Rp\s*(\d{1,3}(?:\.\d{3})*)/i);
-        const numMatch = text.match(/(\d{1,3}(?:\.\d{3})*)/g);
-        let amount = 0;
-        console.log('Rp match:', rpMatch);
-        console.log('Num matches:', numMatch);
-        if (rpMatch) {
-          amount = parseInt(rpMatch[1].replace(/\./g, ''));
-        } else if (numMatch) {
-          // Filter numbers >=100000
-          const validNums = numMatch.map(n => parseInt(n.replace(/\./g, ''))).filter(n => n >= 100000);
-          console.log('Valid nums:', validNums);
-          if (validNums.length > 0) {
-            amount = Math.max(...validNums);
-          }
+      async function processPayment() {
+        const fileInput = document.getElementById('buktiPembayaran');
+        const statusDiv = document.getElementById('statusDiv');
+        const btn = document.getElementById('btnProcess');
+        const uploadSection = document.getElementById('uploadSection');
+        const transactionSection = document.getElementById('transactionSection');
+        const formButtonContainer = document.getElementById('formButtonContainer');
+        const manualConfirmationSection = document.getElementById('manualConfirmationSection');
+        
+        if (!fileInput.files[0]) {
+          showErrorPopup('Pilih file gambar terlebih dahulu.');
+          return;
         }
-        console.log('Final amount:', amount);
+        
+        btn.disabled = true;
+        uploadSection.classList.add('d-none');
+        transactionSection.classList.remove('d-none');
+        formButtonContainer.style.display = 'none';
+        manualConfirmationSection.style.display = 'none';
+        
+        document.getElementById('transactionDate').textContent = new Date().toLocaleString();
+        document.getElementById('transactionName').textContent = 'Memproses...';
+        document.getElementById('transactionAmount').textContent = 'Memproses...';
+        document.getElementById('transactionStatus').textContent = 'Memproses...';
 
-        // Parse name (look for sender name patterns)
-        const namePatterns = [
-          /Nama Pengirim\s*([^\n]+)/i,
-          /Sumber Dana\s*([^\n]+)/i,
-          /Nama\s*:\s*([^\n]+)/i,
-          /Atas Nama\s*:\s*([^\n]+)/i
-        ];
-        let name = 'Unknown';
-        for (const pattern of namePatterns) {
-          const match = text.match(pattern);
-          if (match) {
-            name = match[1].trim();
-            break;
-          }
-        }
+        try {
+          const { data: { text } } = await Tesseract.recognize(fileInput.files[0], 'ind');
+          console.log('Extracted text:', text);
 
-        if (amount >= 100000) {
-          // Convert image to base64
-          const reader = new FileReader();
-          reader.onload = async function(e) {
-            const base64 = e.target.result.split(',')[1];
-            // Save to GAS with image
-            const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name }) });
-            const result = await res.json();
-            if (result.success) {
-              document.getElementById('transactionName').textContent = name;
-              document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString();
-              document.getElementById('transactionStatus').textContent = 'Dikonfirmasi';
-            } else {
-              document.getElementById('transactionName').textContent = 'Gagal';
-              document.getElementById('transactionAmount').textContent = '-';
-              document.getElementById('transactionStatus').textContent = 'Gagal disimpan';
-              showErrorPopup('Gagal menyimpan data pembayaran.');
+          // Parse amount - look for Rp followed by number or just numbers
+          const rpMatch = text.match(/Rp\s*(\d{1,3}(?:\.\d{3})*)/i);
+          const numMatch = text.match(/(\d{1,3}(?:\.\d{3})*)/g);
+          let amount = 0;
+          console.log('Rp match:', rpMatch);
+          console.log('Num matches:', numMatch);
+          if (rpMatch) {
+            amount = parseInt(rpMatch[1].replace(/\./g, ''));
+          } else if (numMatch) {
+            // Filter numbers >=100000
+            const validNums = numMatch.map(n => parseInt(n.replace(/\./g, ''))).filter(n => n >= 100000);
+            console.log('Valid nums:', validNums);
+            if (validNums.length > 0) {
+              amount = Math.max(...validNums);
             }
-          };
-          reader.readAsDataURL(fileInput.files[0]);
-        } else {
-          document.getElementById('transactionName').textContent = '-';
+          }
+          console.log('Final amount:', amount);
+
+          // Parse name (look for sender name patterns)
+          const namePatterns = [
+            /Nama Pengirim\s*([^\n]+)/i,
+            /Sumber Dana\s*([^\n]+)/i,
+            /Nama\s*:\s*([^\n]+)/i,
+            /Atas Nama\s*:\s*([^\n]+)/i
+          ];
+          let name = 'Unknown';
+          for (const pattern of namePatterns) {
+            const match = text.match(pattern);
+            if (match) {
+              name = match[1].trim();
+              break;
+            }
+          }
+
+          if (amount >= 100000) {
+            // Convert image to base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+              try {
+                const base64 = e.target.result.split(',')[1];
+                // Save to GAS with image
+                const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name }) });
+                const result = await res.json();
+                if (result.success) {
+                  document.getElementById('transactionName').textContent = name;
+                  document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString();
+                  document.getElementById('transactionStatus').textContent = 'Dikonfirmasi';
+                  
+                  // Show Drive link if available
+                  if (result.driveLink) {
+                    document.getElementById('driveLinkRow').style.display = 'flex';
+                    document.getElementById('driveLink').innerHTML = '<a href="' + result.driveLink + '" target="_blank"><i class="fas fa-external-link-alt me-1"></i>Lihat Bukti Pembayaran</a>';
+                  }
+                  
+                  // Enable form button after successful payment
+                  formButtonContainer.style.display = 'block';
+                } else {
+                  document.getElementById('transactionName').textContent = 'Gagal';
+                  document.getElementById('transactionAmount').textContent = '-';
+                  document.getElementById('transactionStatus').textContent = 'Gagal disimpan';
+                  showErrorPopup('Gagal menyimpan data pembayaran.');
+                  // Show manual confirmation option
+                  showManualConfirmation(name);
+                }
+              } finally {
+                btn.disabled = false;
+              }
+            };
+            reader.onerror = function() {
+              document.getElementById('transactionName').textContent = 'Error';
+              document.getElementById('transactionAmount').textContent = '-';
+              document.getElementById('transactionStatus').textContent = 'Error';
+              showErrorPopup('Gagal membaca file gambar.');
+              btn.disabled = false;
+              // Show manual confirmation option
+              showManualConfirmation(name);
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+          } else {
+            document.getElementById('transactionName').textContent = '-';
+            document.getElementById('transactionAmount').textContent = '-';
+            document.getElementById('transactionStatus').textContent = 'Nominal tidak cukup';
+            showErrorPopup('Jumlah pembayaran tidak mencukupi (minimal Rp 100.000).');
+            btn.disabled = false;
+            // Show manual confirmation option
+            showManualConfirmation(name);
+          }
+        } catch (error) {
+          console.error(error);
+          document.getElementById('transactionName').textContent = 'Error';
           document.getElementById('transactionAmount').textContent = '-';
-          document.getElementById('transactionStatus').textContent = 'Nominal tidak cukup';
-          showErrorPopup('Jumlah pembayaran tidak mencukupi (minimal Rp 100.000).');
+          document.getElementById('transactionStatus').textContent = 'Error';
+          showErrorPopup('Gagal memproses gambar: ' + error.message);
+          btn.disabled = false;
+          // Show manual confirmation option
+          showManualConfirmation('Unknown');
         }
-      } catch (error) {
-        console.error(error);
-        document.getElementById('transactionName').textContent = 'Error';
-        document.getElementById('transactionAmount').textContent = '-';
-        document.getElementById('transactionStatus').textContent = 'Error';
-        showErrorPopup('Gagal memproses gambar: ' + error.message);
-      } finally {
-        btn.disabled = false;
       }
-    }
+      
+      async function showManualConfirmation(name) {
+        const manualConfirmationSection = document.getElementById('manualConfirmationSection');
+        const cpContactInfo = document.getElementById('cpContactInfo');
+        
+        try {
+          // Get CP contact data from sheet
+          const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getCPContacts" }) });
+          const result = await res.json();
+          
+          if (result.success && result.data && result.data.length > 0) {
+            let contactHtml = '<p class="mb-2"><strong>Hubungi salah satu CP berikut:</strong></p>';
+            result.data.forEach(contact => {
+              const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Konfirmasi%20Pembayaran%20SPMB%20atas%20nama%20' + encodeURIComponent(name);
+              contactHtml += '<div class="mb-2">';
+              contactHtml += '<a href="' + waLink + '" target="_blank" class="btn btn-success btn-sm me-2"><i class="fab fa-whatsapp me-1"></i>' + contact.name + ' - ' + contact.phone + '</a>';
+              contactHtml += '</div>';
+            });
+            cpContactInfo.innerHTML = contactHtml;
+          } else {
+            cpContactInfo.innerHTML = '<p class="text-danger">Tidak ada kontak CP yang tersedia. Silakan hubungi admin.</p>';
+          }
+        } catch (error) {
+          cpContactInfo.innerHTML = '<p class="text-danger">Gagal memuat kontak CP. Silakan hubungi admin.</p>';
+        }
+        
+        manualConfirmationSection.style.display = 'block';
+      }
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

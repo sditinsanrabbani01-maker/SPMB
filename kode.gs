@@ -73,6 +73,12 @@ function doPost(e) {
       return createResponse({ success: true, data: history });
     }
 
+    // 11. Aksi Ambil Kontak CP/Contact Person
+    if (action === "getCPContacts") {
+      var contacts = handleGetCPContacts();
+      return createResponse({ success: true, data: contacts });
+    }
+
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
   } catch (error) {
     return createResponse({ success: false, message: "Server Error: " + error.toString() });
@@ -392,6 +398,7 @@ function handleSavePayment(amount, name, status, image, filename) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pembayaran");
   sheet.appendRow([new Date(), name, amount, status]);
 
+  var driveLink = "";
   if (image && filename) {
     // Save image to Drive in student-specific folder
     var rootFolder = DriveApp.getFolderById("1X68-LaYIrVPni2utMXLB5AxGK2VmTGo5");
@@ -407,12 +414,39 @@ function handleSavePayment(amount, name, status, image, filename) {
       studentFolder = rootFolder.createFolder(studentFolderName);
     }
     
-    var fileName = "Konfirmasi." + filename.split('.').pop();
+    // Rename file to "Konfirmasi Pembayaran - Nama Siswa"
+    var fileExtension = filename.split('.').pop();
+    var fileName = "Konfirmasi Pembayaran - " + name + "." + fileExtension;
     var blob = Utilities.newBlob(Utilities.base64Decode(image), 'image/jpeg', fileName);
-    studentFolder.createFile(blob);
+    var file = studentFolder.createFile(blob);
+    
+    // Get the Drive link
+    driveLink = file.getUrl();
   }
 
-  return true;
+  return { success: true, driveLink: driveLink };
+}
+
+function handleGetCPContacts() {
+  try {
+    var cpSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CP/Contact Person");
+    if (!cpSheet) return [];
+    
+    var rows = cpSheet.getDataRange().getValues();
+    var contacts = [];
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][2]) { // Nomor Telepon
+        contacts.push({
+          name: rows[i][1] || "CP " + i,
+          phone: rows[i][2].toString(),
+          description: rows[i][3] || ""
+        });
+      }
+    }
+    return contacts;
+  } catch (e) {
+    return [];
+  }
 }
 
 function normalizeWhatsAppNumber(num) {
