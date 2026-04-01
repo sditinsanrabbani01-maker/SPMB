@@ -488,22 +488,11 @@ function handleGetCPContacts() {
 function normalizeWhatsAppNumber(num) {
   if (!num) return '';
   num = num.toString().replace(/\D/g, '');
-
-  // For WhaCenter API, keep Indonesian local format (08xxx) instead of international (62xxx)
-  // API documentation shows examples like "081234567890"
-  if (num.startsWith('62')) {
-    // Convert international format back to local format
-    num = '0' + num.substring(2);
-  } else if (!num.startsWith('0')) {
-    // If it doesn't start with 0 or 62, assume it's without prefix and add 0
-    num = '0' + num;
+  if (num.startsWith('0')) {
+    num = '62' + num.substring(1);
+  } else if (!num.startsWith('62')) {
+    num = '62' + num;
   }
-
-  // Ensure it starts with 0 and has valid length
-  if (!num.startsWith('0') || num.length < 10 || num.length > 13) {
-    Logger.log("Warning: Phone number format may be invalid: " + num);
-  }
-
   return num;
 }
 
@@ -584,9 +573,9 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
   Logger.log("Raw group ID: " + rawGroupId);
   Logger.log("Numbers to add: " + JSON.stringify(numbers));
 
-  // Clean group ID: remove "@g.us" suffix and keep as string
-  var cleanGroupId = rawGroupId.replace('@g.us', '');
-  Logger.log("Cleaned group ID: " + cleanGroupId);
+  // Clean group ID: remove "@g.us" suffix and convert to integer
+  var cleanGroupId = parseInt(rawGroupId.replace('@g.us', '').replace(/\D/g, ''));
+  Logger.log("Cleaned group ID (integer): " + cleanGroupId);
 
   // Normalize phone numbers
   var normalizedNumbers = numbers.map(function(num) {
