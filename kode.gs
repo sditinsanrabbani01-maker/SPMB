@@ -573,9 +573,9 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
   Logger.log("Raw group ID: " + rawGroupId);
   Logger.log("Numbers to add: " + JSON.stringify(numbers));
 
-  // Clean group ID: remove "@g.us" suffix and convert to integer
-  var cleanGroupId = parseInt(rawGroupId.replace('@g.us', '').replace(/\D/g, ''));
-  Logger.log("Cleaned group ID (integer): " + cleanGroupId);
+  // Clean group ID: remove "@g.us" suffix, keep as string
+  var cleanGroupId = rawGroupId.replace('@g.us', '');
+  Logger.log("Cleaned group ID (string): " + cleanGroupId);
 
   // Normalize phone numbers
   var normalizedNumbers = numbers.map(function(num) {
@@ -585,6 +585,7 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
 
   // API Key from WhaCenter (Device ID)
   var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Reverted to working device ID
+  Logger.log("Using API key for addNumberToGroup: " + apiKey);
 
   var url = "https://api.whacenter.com/api/addNumberToGroup";
 
@@ -598,6 +599,7 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
     };
 
     Logger.log("Payload: " + JSON.stringify(payload));
+    Logger.log("Compare with getGroup - both use same API key: " + apiKey);
 
     var options = {
       method: "post",
