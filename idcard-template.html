@@ -803,17 +803,18 @@
     }
 
     function handleMouseMove(e) {
-      updateCoordinatesDisplay(e);
+      if (!isDragging && !isResizing) return;
+
+      const canvas = document.getElementById('idCardCanvas');
+      const rect = canvas.getBoundingClientRect();
+      const scale = zoomLevel / 100;
+
+      // Koordinat mouse relatif terhadap canvas yang sudah di-scale
+      const mouseX = (e.clientX - rect.left) / scale;
+      const mouseY = (e.clientY - rect.top) / scale;
 
       if (isDragging && selectedElement) {
         selectedElement.classList.add('dragging');
-
-        const canvas = document.getElementById('idCardCanvas');
-        const rect = canvas.getBoundingClientRect();
-
-        // Simplified coordinate calculation for better accuracy
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
 
         let x = mouseX - dragOffset.x;
         let y = mouseY - dragOffset.y;
@@ -837,8 +838,12 @@
         updatePropertiesPanel();
       } else if (isResizing && selectedElement) {
         selectedElement.classList.add('resizing');
-        handleResize(e);
+        handleResize(e, mouseX, mouseY);
       }
+
+      // Update info koordinat di UI
+      updatePositionInputs();
+      updateCoordinatesDisplay(e);
     }
 
     function updateCoordinatesDisplay(e) {
@@ -878,15 +883,8 @@
       };
     }
 
-    function handleResize(e) {
+    function handleResize(e, mouseX, mouseY) {
       if (!initialResizeData) return;
-
-      const canvas = document.getElementById('idCardCanvas');
-      const rect = canvas.getBoundingClientRect();
-
-      // Get mouse position relative to canvas
-      let mouseX = e.clientX - rect.left;
-      let mouseY = e.clientY - rect.top;
 
       // Initialize mouse start position on first resize move
       if (initialResizeData.mouseStartX === 0 && initialResizeData.mouseStartY === 0) {
@@ -894,6 +892,56 @@
         initialResizeData.mouseStartY = mouseY;
         return;
       }
+
+      const deltaX = mouseX - initialResizeData.mouseStartX;
+      const deltaY = mouseY - initialResizeData.mouseStartY;
+
+      let newX = initialResizeData.startX;
+      let newY = initialResizeData.startY;
+      let newWidth = initialResizeData.startWidth;
+      let newHeight = initialResizeData.startHeight;
+
+      const minSize = 10;
+
+      // Handle different resize directions
+      switch (resizeHandle) {
+        case 'nw': // North-West
+          newWidth = Math.max(minSize, initialResizeData.startWidth - deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight - deltaY);
+          newX = initialResizeData.startX + (initialResizeData.startWidth - newWidth);
+          newY = initialResizeData.startY + (initialResizeData.startHeight - newHeight);
+          break;
+        case 'ne': // North-East
+          newWidth = Math.max(minSize, initialResizeData.startWidth + deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight - deltaY);
+          newY = initialResizeData.startY + (initialResizeData.startHeight - newHeight);
+          break;
+        case 'sw': // South-West
+          newWidth = Math.max(minSize, initialResizeData.startWidth - deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight + deltaY);
+          newX = initialResizeData.startX + (initialResizeData.startWidth - newWidth);
+          break;
+        case 'se': // South-East
+          newWidth = Math.max(minSize, initialResizeData.startWidth + deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight + deltaY);
+          break;
+      }
+
+      // Constrain to canvas bounds
+      const canvas = document.getElementById('idCardCanvas');
+      const maxX = canvas.offsetWidth - newWidth;
+      const maxY = canvas.offsetHeight - newHeight;
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+
+      selectedElement.style.left = newX + 'px';
+      selectedElement.style.top = newY + 'px';
+      selectedElement.style.width = newWidth + 'px';
+      selectedElement.style.height = newHeight + 'px';
+
+      updatePropertiesPanel();
+      updateSizeInfo(newWidth, newHeight);
+    }
 
       let deltaX = mouseX - initialResizeData.mouseStartX;
       let deltaY = mouseY - initialResizeData.mouseStartY;
@@ -1006,14 +1054,22 @@
     }
 
     function handleMouseUp() {
-      let shouldSaveHistory = false;
-
       if (selectedElement) {
         selectedElement.classList.remove('dragging', 'resizing');
-        // Save history if element was moved or resized
-        if (isDragging || isResizing) {
-          shouldSaveHistory = true;
-        }
+      }
+
+      isDragging = false;
+      if (isResizing) {
+        endResize();
+      }
+      isResizing = false;
+      resizeHandle = '';
+
+      // Save to history after drag or resize operations
+      if (selectedElement) {
+        saveToHistory();
+      }
+    }
       }
 
       isDragging = false;
@@ -1115,6 +1171,13 @@
       } else if (type === 'image') {
         selectedElement.style.opacity = document.getElementById('imageOpacity').value;
       }
+    }
+
+    function updatePositionInputs() {
+      if (!selectedElement) return;
+
+      document.getElementById('elementX').value = Math.round(parseFloat(selectedElement.style.left || 0));
+      document.getElementById('elementY').value = Math.round(parseFloat(selectedElement.style.top || 0));
     }
 
     function updateElementPosition() {
