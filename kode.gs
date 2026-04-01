@@ -95,11 +95,19 @@ function doPost(e) {
 
     // 13. Aksi Get WhatsApp Groups Info
     if (action === "getWhatsAppGroups") {
-      Logger.log("Processing getWhatsAppGroups action");
-      var groups = getWhatsAppGroups();
-      Logger.log("getWhatsAppGroups result: " + JSON.stringify(groups));
-      return createResponse({ success: true, data: groups });
-    }
+       Logger.log("Processing getWhatsAppGroups action");
+       var groups = getWhatsAppGroups();
+       Logger.log("getWhatsAppGroups result: " + JSON.stringify(groups));
+       return createResponse({ success: true, data: groups });
+     }
+
+     // 14. Aksi Send All Group Invitations
+     if (action === "sendAllGroupInvitations") {
+       Logger.log("Processing sendAllGroupInvitations action");
+       var result = sendAllGroupInvitations();
+       Logger.log("sendAllGroupInvitations result: " + JSON.stringify(result));
+       return createResponse(result);
+     }
 
     Logger.log("Unknown action: " + action);
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
@@ -208,13 +216,9 @@ function handleSubmit(data) {
     Logger.log("No CP numbers found");
   }
 
-  // Add mother's WhatsApp number to group
-  if (data.hpIbu) {
-    Logger.log("Adding mother to group: " + data.hpIbu);
-    addMotherToGroup(data.hpIbu);
-  } else {
-    Logger.log("No mother's WhatsApp number provided");
-  }
+  // Send group invitation to registrant (priority: mother > father)
+  Logger.log("Sending group invitation to registrant");
+  sendGroupInvitation(data.hpIbu, data.hpAyah, data.nama, regNo);
 
   Logger.log("handleSubmit completed successfully");
   return regNo;
@@ -710,25 +714,153 @@ function addNumbersToGroup(rawGroupId, numbers, maxRetries = 2) {
   };
 }
 
-// Function to add mother's WhatsApp number to group when new registrant is submitted
-function addMotherToGroup(hpIbu) {
-  if (!hpIbu) return;
+// Function to send group invitation to registrant when new registration is submitted
+function sendGroupInvitation(hpIbu, hpAyah, namaSiswa, noReg) {
+  Logger.log("=== sendGroupInvitation called ===");
+  Logger.log("Mother: " + hpIbu + ", Father: " + hpAyah + ", Student: " + namaSiswa + ", RegNo: " + noReg);
+
+  // Prioritize mother's number, fallback to father's number
+  var targetNumber = hpIbu || hpAyah;
+  if (!targetNumber) {
+    Logger.log("No phone number found for sending invitation");
+    return;
+  }
+
+  Logger.log("Sending invitation to: " + targetNumber + " (priority: mother > father)");
+
+  // Get group invitation link
+  var inviteLink = getGroupInviteLink();
+  if (!inviteLink) {
+    Logger.log("Failed to get group invitation link");
+    return;
+  }
+
+  // Send invitation message
+  var message = "Selamat! Pendaftaran SPMB SDIT Insan Rabbani telah berhasil.\n\n" +
+                "Nama Siswa: " + namaSiswa + "\n" +
+                "No Registrasi: " + noReg + "\n\n" +
+                "Bergabunglah dengan Group WhatsApp SPMB 2026/2027 untuk mendapatkan informasi terbaru:\n" +
+                inviteLink + "\n\n" +
+                "Terima kasih atas kepercayaan Anda mendaftarkan putra/putri di SDIT Insan Rabbani.";
+
+  var normalizedNumber = normalizeWhatsAppNumber(targetNumber);
+  var result = sendWhatsAppMessage(normalizedNumber, message);
+
+  if (result) {
+    Logger.log("✅ Group invitation sent successfully to: " + normalizedNumber);
+  } else {
+    Logger.log("❌ Failed to send group invitation to: " + normalizedNumber);
+  }
+}
+
+// Function to get group invitation link for SPMB 2026/2027
+function getGroupInviteLink() {
+  Logger.log("=== getGroupInviteLink called ===");
 
   // Get group ID for "SPMB 2026/2027"
   var groups = getWhatsAppGroups();
-  if (groups && groups.Status && groups.Data && groups.Data.groups) {
-    var spmbGroup = groups.Data.groups.find(function(g) {
-      return g.name === "SPMB 2026/2027";
-    });
+  if (!groups || !groups.Status || !groups.Data || !groups.Data.groups) {
+    Logger.log("Failed to get WhatsApp groups");
+    return null;
+  }
 
-    if (spmbGroup) {
-      var normalizedNumber = normalizeWhatsAppNumber(hpIbu);
-      var numbers = [normalizedNumber];
-      var result = addNumbersToGroup(spmbGroup.id, numbers);
-      Logger.log("Added new registrant to group: " + normalizedNumber + ", result: " + JSON.stringify(result));
-    } else {
-      Logger.log("Group 'SPMB 2026/2027' not found - cannot add new registrant");
+  var spmbGroup = groups.Data.groups.find(function(g) {
+    return g.name === "SPMB 2026/2027";
+  });
+
+  if (!spmbGroup) {
+    Logger.log("SPMB 2026/2027 group not found");
+    return null;
+  }
+
+  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
+  var url = "https://api.whacenter.com/api/getGroupInvite";
+
+  var payload = {
+    api_key: apiKey,
+    group_id: spmbGroup.id
+  };
+
+  var options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    Logger.log("Requesting group invite link for: " + spmbGroup.id);
+    var response = UrlFetchApp.fetch(url, options);
+    var responseCode = response.getResponseCode();
+    var responseText = response.getContentText();
+
+    Logger.log("Group invite response code: " + responseCode);
+    Logger.log("Group invite response: " + responseText);
+
+    if (responseCode === 200) {
+      var result = JSON.parse(responseText);
+      if (result.success && result.data && result.data.invite_link) {
+        Logger.log("✅ Group invite link obtained: " + result.data.invite_link);
+        return result.data.invite_link;
+      }
     }
+
+    Logger.log("❌ Failed to get group invite link");
+    return null;
+
+  } catch (e) {
+    Logger.log("Error getting group invite link: " + e.toString());
+    return null;
+  }
+}
+
+// Function to send group invitations to all existing registrants
+function sendAllGroupInvitations() {
+  Logger.log("=== sendAllGroupInvitations called ===");
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+  var rows = sheet.getDataRange().getValues();
+  var sentCount = 0;
+  var failedCount = 0;
+
+  Logger.log("Processing " + (rows.length - 1) + " rows from Data_SPMB sheet");
+
+  for (var i = 1; i < rows.length; i++) {
+    var noReg = rows[i][1]; // No Registrasi
+    var namaSiswa = rows[i][2]; // Nama Siswa
+    var hpIbu = rows[i][19]; // HP Ibu column
+    var hpAyah = rows[i][14]; // HP Ayah column
+
+    Logger.log("Processing row " + i + " - " + namaSiswa + " (Reg: " + noReg + ")");
+
+    // Send invitation with priority to mother's number
+    var result = sendGroupInvitation(hpIbu, hpAyah, namaSiswa, noReg);
+
+    if (result) {
+      sentCount++;
+      Logger.log("✅ Invitation sent for " + namaSiswa);
+    } else {
+      failedCount++;
+      Logger.log("❌ Failed to send invitation for " + namaSiswa);
+    }
+
+    // Small delay to avoid rate limiting
+    Utilities.sleep(1000);
+  }
+
+  Logger.log("Invitation sending completed. Sent: " + sentCount + ", Failed: " + failedCount);
+
+  if (sentCount > 0) {
+    return {
+      success: true,
+      message: "Berhasil mengirim " + sentCount + " undangan group WhatsApp" +
+               (failedCount > 0 ? ". " + failedCount + " gagal dikirim." : ".")
+    };
+  } else {
+    return {
+      success: false,
+      message: "Tidak ada undangan yang berhasil dikirim. " + failedCount + " gagal."
+    };
   }
 }
 

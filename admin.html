@@ -129,10 +129,10 @@
     <div class="mb-4">
         <h5>WhatsApp Group</h5>
         <div class="d-flex gap-2 mb-2">
-            <button onclick="addAllMothersToGroup()" class="btn btn-success">Tambah Semua Nomor Ibu ke Group WhatsApp</button>
+            <button onclick="sendAllGroupInvitations()" class="btn btn-success">Kirim Undangan Group WhatsApp ke Semua Pendaftar</button>
             <button onclick="checkWhatsAppGroups()" class="btn btn-info">Cek Group WhatsApp</button>
         </div>
-        <small class="form-text text-muted d-block">Menambahkan semua nomor WhatsApp ibu dari data pendaftar ke group "SPMB 2026/2027"</small>
+        <small class="form-text text-muted d-block">Mengirim undangan group WhatsApp "SPMB 2026/2027" ke nomor ibu (prioritas) atau ayah dari semua pendaftar</small>
         <div id="groupInfo" class="mt-2" style="display: none;"></div>
     </div>
 
@@ -346,22 +346,22 @@
             alert('Pengaturan disimpan!');
         }
         
-        async function addAllMothersToGroup() {
-            if (!confirm('Apakah Anda yakin ingin menambahkan semua nomor ibu ke group WhatsApp?')) {
+        async function sendAllGroupInvitations() {
+            if (!confirm('Apakah Anda yakin ingin mengirim undangan group WhatsApp ke semua pendaftar?')) {
                 return;
             }
 
             try {
-                const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "addAllMothersToGroup" }) });
+                const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "sendAllGroupInvitations" }) });
                 const result = await res.json();
                 if (result.success) {
-                    alert(result.message || 'Semua nomor ibu berhasil ditambahkan ke group WhatsApp!');
+                    alert(result.message || 'Undangan group WhatsApp berhasil dikirim ke semua pendaftar!');
                 } else {
-                    alert('Error: ' + (result.message || 'Gagal menambahkan nomor ke group WhatsApp.'));
+                    alert('Error: ' + (result.message || 'Gagal mengirim undangan group WhatsApp.'));
                 }
             } catch (error) {
-                console.error('Error adding numbers to group:', error);
-                alert('Terjadi kesalahan saat menambahkan nomor ke group WhatsApp.');
+                console.error('Error sending group invitations:', error);
+                alert('Terjadi kesalahan saat mengirim undangan group WhatsApp.');
             }
         }
 
