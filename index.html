@@ -529,10 +529,23 @@
     document.getElementById('idButton').addEventListener('click', () => setLanguage('id'));
     document.getElementById('enButton').addEventListener('click', () => setLanguage('en'));
 
+    // Check registration status and load content on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      console.log('DOMContentLoaded fired, URL_GAS:', URL_GAS);
+      loadContent();
+      // Small delay to ensure config is loaded
+      setTimeout(() => {
+        console.log('Loading CP contacts after timeout, URL_GAS:', URL_GAS);
+        try {
+          loadCPContacts();
+        } catch (error) {
+          console.error('Error calling loadCPContacts:', error);
+        }
+      }, 500);
+    });
+
     // Initialize with Indonesian language
     setLanguage('id');
-    loadContent();
-    loadCPContacts();
    </script>
 </body>
 </html>
