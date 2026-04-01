@@ -17,15 +17,51 @@
     .canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #f0f0f0; }
     .id-card-canvas { width: 350px; height: 220px; border: 2px solid #3498db; position: relative; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.2); overflow: hidden; background-image: linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px); background-size: 20px 20px; }
     .properties-panel { width: 300px; background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; }
-    .element { position: absolute; cursor: move; user-select: none; border: 2px solid transparent; }
-    .element.selected { border-color: #3498db; box-shadow: 0 0 10px rgba(52, 152, 219, 0.5); }
-    .element:hover { border-color: #bdc3c7; }
-    .resize-handle { position: absolute; width: 10px; height: 10px; background: #3498db; border-radius: 50%; cursor: pointer; display: none; }
+    .element {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .element.selected {
+      border-color: #3498db;
+      box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+    }
+    .element:hover {
+      border-color: #bdc3c7;
+    }
+    .element.dragging {
+      opacity: 0.8;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      transform: rotate(2deg);
+    }
+    .element.resizing {
+      border-color: #e74c3c;
+      box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
+    }
+    .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #3498db;
+      border: 2px solid white;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      z-index: 10;
+      box-shadow: 0 0 4px rgba(52, 152, 219, 0.5);
+      transition: all 0.2s;
+    }
+    .resize-handle:hover {
+      background: #2980b9;
+      transform: scale(1.2);
+    }
     .element.selected .resize-handle { display: block; }
-    .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
-    .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
-    .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
-    .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+    .resize-handle.nw { top: -6px; left: -6px; cursor: nw-resize; }
+    .resize-handle.ne { top: -6px; right: -6px; cursor: ne-resize; }
+    .resize-handle.sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+    .resize-handle.se { bottom: -6px; right: -6px; cursor: se-resize; }
     .text-element { font-family: Arial, sans-serif; color: #333; min-width: 50px; min-height: 20px; padding: 5px; }
     .shape-element { background: #3498db; border-radius: 0; }
     .image-element { max-width: 100px; max-height: 100px; }
@@ -43,6 +79,7 @@
     .zoom-controls { position: absolute; bottom: 20px; right: 20px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .canvas-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #999; font-size: 14px; text-align: center; pointer-events: none; z-index: 1; }
     .coordinates-display { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; display: none; z-index: 100; }
+    .size-info { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; display: none; z-index: 101; }
     .canvas-guide strong { color: #666; }
     .zoom-slider { width: 150px; }
   </style>
@@ -83,6 +120,13 @@
           <small class="text-muted">SDIT INSAN RABBANI - Template ID Card Siswa</small>
         </div>
         <div>
+          <button onclick="undo()" class="btn btn-outline-secondary me-1" id="undoBtn" disabled title="Undo (Ctrl+Z)">
+            <i class="fas fa-undo"></i>
+          </button>
+          <button onclick="redo()" class="btn btn-outline-secondary me-1" id="redoBtn" disabled title="Redo (Ctrl+Y)">
+            <i class="fas fa-redo"></i>
+          </button>
+          <div class="vr mx-2"></div>
           <button onclick="saveTemplate()" class="btn btn-primary me-2">
             <i class="fas fa-save me-1"></i>Save
           </button>
@@ -312,6 +356,11 @@
     let canvasBackground = { type: 'color', value: '#ffffff' };
     let zoomLevel = 100;
 
+    // History for undo/redo
+    let history = [];
+    let historyIndex = -1;
+    const maxHistory = 50;
+
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
       initializeCanvas();
@@ -319,6 +368,7 @@
       setupToolbar();
       loadTemplate();
       renderLayers();
+      saveToHistory(); // Initial state
     });
 
     function initializeCanvas() {
@@ -441,10 +491,16 @@
         e.preventDefault();
       }
 
-      // Ctrl+Z for undo (placeholder - could be implemented later)
-      if (e.ctrlKey && e.key === 'z') {
+      // Ctrl+Z for undo
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        // TODO: Implement undo functionality
+        undo();
+      }
+
+      // Ctrl+Y or Ctrl+Shift+Z for redo
+      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        redo();
       }
     }
 
@@ -508,24 +564,37 @@
 
     function handleCanvasMouseDown(e) {
       const canvas = document.getElementById('idCardCanvas');
+
+      // Don't handle canvas clicks if clicking on elements or their handles
+      if (e.target !== canvas && !e.target.classList.contains('canvas-guide')) {
+        return;
+      }
+
       const rect = canvas.getBoundingClientRect();
 
-      // Calculate mouse position relative to canvas, accounting for zoom and centering
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+      // Calculate mouse position relative to canvas (simplified for better accuracy)
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Adjust for zoom - convert screen coordinates to canvas coordinates
       const scale = zoomLevel / 100;
+      const canvasX = x / scale;
+      const canvasY = y / scale;
 
-      // Transform mouse coordinates to canvas coordinates
-      const x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2);
-      const y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2);
+      // Center the coordinates on the canvas
+      const centerX = canvas.offsetWidth / 2;
+      const centerY = canvas.offsetHeight / 2;
+      const finalX = canvasX - centerX + centerX;
+      const finalY = canvasY - centerY + centerY;
 
-      // Check if clicking on canvas itself (not on an element)
-      if (e.target === canvas) {
-        if (currentTool === 'select') {
+      if (currentTool === 'select') {
+        // Check if clicking on canvas background to deselect
+        const clickedElement = getElementAtPosition(finalX, finalY);
+        if (!clickedElement) {
           deselectElement();
-        } else {
-          createNewElement(currentTool, x, y);
         }
+      } else {
+        createNewElement(currentTool, finalX, finalY);
       }
     }
 
@@ -538,8 +607,7 @@
         // Check if clicking on resize handle
         const handle = getResizeHandleAtPosition(e, clickedElement);
         if (handle) {
-          isResizing = true;
-          resizeHandle = handle;
+          startResize(clickedElement, handle);
         } else {
           isDragging = true;
           dragOffset.x = e.offsetX || 0;
@@ -655,6 +723,12 @@
       // Add resize handles
       addResizeHandles(element);
 
+      // Add size info display
+      const sizeInfo = document.createElement('div');
+      sizeInfo.className = 'size-info';
+      sizeInfo.textContent = `${element.offsetWidth} × ${element.offsetHeight}`;
+      element.appendChild(sizeInfo);
+
       // Add to canvas
       document.getElementById('idCardCanvas').appendChild(element);
       elements.push(element);
@@ -673,15 +747,27 @@
       document.getElementById('selectTool').classList.add('active');
 
       renderLayers();
+
+      // Save to history
+      saveToHistory();
     }
 
     function addResizeHandles(element) {
+      // Remove existing handles and size info
+      element.querySelectorAll('.resize-handle, .size-info').forEach(el => el.remove());
+
       const handles = ['nw', 'ne', 'sw', 'se'];
       handles.forEach(handle => {
         const resizeHandle = document.createElement('div');
         resizeHandle.className = `resize-handle ${handle}`;
         element.appendChild(resizeHandle);
       });
+
+      // Add size info display
+      const sizeInfo = document.createElement('div');
+      sizeInfo.className = 'size-info';
+      sizeInfo.textContent = `${element.offsetWidth} × ${element.offsetHeight}`;
+      element.appendChild(sizeInfo);
     }
 
     function getElementAtPosition(x, y) {
@@ -689,13 +775,11 @@
       const elements = Array.from(canvas.children).reverse(); // Check top elements first
 
       for (const element of elements) {
-        if (element.classList.contains('element')) {
-          const rect = element.getBoundingClientRect();
-          const canvasRect = canvas.getBoundingClientRect();
-          const elementX = (rect.left - canvasRect.left) / (zoomLevel / 100);
-          const elementY = (rect.top - canvasRect.top) / (zoomLevel / 100);
-          const elementWidth = rect.width / (zoomLevel / 100);
-          const elementHeight = rect.height / (zoomLevel / 100);
+        if (element.classList.contains('element') && element !== document.getElementById('canvasGuide')) {
+          const elementX = parseFloat(element.style.left || 0);
+          const elementY = parseFloat(element.style.top || 0);
+          const elementWidth = element.offsetWidth;
+          const elementHeight = element.offsetHeight;
 
           if (x >= elementX && x <= elementX + elementWidth &&
               y >= elementY && y <= elementY + elementHeight) {
@@ -722,16 +806,24 @@
       updateCoordinatesDisplay(e);
 
       if (isDragging && selectedElement) {
+        selectedElement.classList.add('dragging');
+
         const canvas = document.getElementById('idCardCanvas');
         const rect = canvas.getBoundingClientRect();
 
-        // Use same coordinate calculation as handleCanvasMouseDown
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const scale = zoomLevel / 100;
+        // Simplified coordinate calculation for better accuracy
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-        let x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2) - dragOffset.x;
-        let y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2) - dragOffset.y;
+        let x = mouseX - dragOffset.x;
+        let y = mouseY - dragOffset.y;
+
+        // Snap to grid with Ctrl key
+        if (e.ctrlKey) {
+          const gridSize = 10;
+          x = Math.round(x / gridSize) * gridSize;
+          y = Math.round(y / gridSize) * gridSize;
+        }
 
         // Constrain to canvas bounds
         const maxX = canvas.offsetWidth - selectedElement.offsetWidth;
@@ -744,6 +836,7 @@
 
         updatePropertiesPanel();
       } else if (isResizing && selectedElement) {
+        selectedElement.classList.add('resizing');
         handleResize(e);
       }
     }
@@ -770,50 +863,95 @@
       }
     }
 
+    let initialResizeData = null;
+
+    function startResize(element, handle) {
+      isResizing = true;
+      resizeHandle = handle;
+      initialResizeData = {
+        startX: parseFloat(element.style.left || 0),
+        startY: parseFloat(element.style.top || 0),
+        startWidth: element.offsetWidth,
+        startHeight: element.offsetHeight,
+        mouseStartX: 0,
+        mouseStartY: 0
+      };
+    }
+
     function handleResize(e) {
+      if (!initialResizeData) return;
+
       const canvas = document.getElementById('idCardCanvas');
       const rect = canvas.getBoundingClientRect();
 
-      // Use same coordinate calculation as handleCanvasMouseDown
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const scale = zoomLevel / 100;
+      // Get mouse position relative to canvas
+      let mouseX = e.clientX - rect.left;
+      let mouseY = e.clientY - rect.top;
 
-      const x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2);
-      const y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2);
+      // Initialize mouse start position on first resize move
+      if (initialResizeData.mouseStartX === 0 && initialResizeData.mouseStartY === 0) {
+        initialResizeData.mouseStartX = mouseX;
+        initialResizeData.mouseStartY = mouseY;
+        return;
+      }
 
-      const currentX = parseFloat(selectedElement.style.left || 0);
-      const currentY = parseFloat(selectedElement.style.top || 0);
-      const currentWidth = selectedElement.offsetWidth;
-      const currentHeight = selectedElement.offsetHeight;
+      let deltaX = mouseX - initialResizeData.mouseStartX;
+      let deltaY = mouseY - initialResizeData.mouseStartY;
 
-      let newX = currentX;
-      let newY = currentY;
-      let newWidth = currentWidth;
-      let newHeight = currentHeight;
+      // Proportional resize with Shift key
+      if (e.shiftKey) {
+        const aspectRatio = initialResizeData.startWidth / initialResizeData.startHeight;
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          deltaY = deltaX / aspectRatio;
+        } else {
+          deltaX = deltaY * aspectRatio;
+        }
+      }
+
+      let newX = initialResizeData.startX;
+      let newY = initialResizeData.startY;
+      let newWidth = initialResizeData.startWidth;
+      let newHeight = initialResizeData.startHeight;
+
+      const minSize = 10; // Smaller minimum size
+      const gridSize = 10; // Snap to grid
 
       switch (resizeHandle) {
         case 'nw':
-          newWidth = Math.max(20, currentX + currentWidth - x);
-          newHeight = Math.max(20, currentY + currentHeight - y);
-          newX = Math.min(x, currentX + currentWidth - 20);
-          newY = Math.min(y, currentY + currentHeight - 20);
+          newWidth = Math.max(minSize, initialResizeData.startWidth - deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight - deltaY);
+          newX = initialResizeData.startX + (initialResizeData.startWidth - newWidth);
+          newY = initialResizeData.startY + (initialResizeData.startHeight - newHeight);
           break;
         case 'ne':
-          newWidth = Math.max(20, x - currentX);
-          newHeight = Math.max(20, currentY + currentHeight - y);
-          newY = Math.min(y, currentY + currentHeight - 20);
+          newWidth = Math.max(minSize, initialResizeData.startWidth + deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight - deltaY);
+          newY = initialResizeData.startY + (initialResizeData.startHeight - newHeight);
           break;
         case 'sw':
-          newWidth = Math.max(20, currentX + currentWidth - x);
-          newHeight = Math.max(20, y - currentY);
-          newX = Math.min(x, currentX + currentWidth - 20);
+          newWidth = Math.max(minSize, initialResizeData.startWidth - deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight + deltaY);
+          newX = initialResizeData.startX + (initialResizeData.startWidth - newWidth);
           break;
         case 'se':
-          newWidth = Math.max(20, x - currentX);
-          newHeight = Math.max(20, y - currentY);
+          newWidth = Math.max(minSize, initialResizeData.startWidth + deltaX);
+          newHeight = Math.max(minSize, initialResizeData.startHeight + deltaY);
           break;
       }
+
+      // Snap to grid with Ctrl key
+      if (e.ctrlKey) {
+        newX = Math.round(newX / gridSize) * gridSize;
+        newY = Math.round(newY / gridSize) * gridSize;
+        newWidth = Math.round(newWidth / gridSize) * gridSize;
+        newHeight = Math.round(newHeight / gridSize) * gridSize;
+      }
+
+      // Constrain to canvas bounds
+      const maxX = canvas.offsetWidth - newWidth;
+      const maxY = canvas.offsetHeight - newHeight;
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
 
       selectedElement.style.left = newX + 'px';
       selectedElement.style.top = newY + 'px';
@@ -821,28 +959,92 @@
       selectedElement.style.height = newHeight + 'px';
 
       updatePropertiesPanel();
+
+      // Update size info in real-time
+      updateSizeInfo(newWidth, newHeight);
+    }
+
+    function updateSizeInfo(width, height) {
+      if (selectedElement) {
+        const sizeInfo = selectedElement.querySelector('.size-info');
+        if (sizeInfo) {
+          sizeInfo.textContent = `${Math.round(width)} × ${Math.round(height)}`;
+          sizeInfo.style.display = isResizing ? 'block' : 'none';
+        }
+      }
+
+      // Update properties panel
+      const widthInput = document.getElementById('elementWidth');
+      const heightInput = document.getElementById('elementHeight');
+
+      if (widthInput && heightInput) {
+        widthInput.value = Math.round(width);
+        heightInput.value = Math.round(height);
+      }
+    }
+
+    function showSizeInfo() {
+      if (selectedElement) {
+        const sizeInfo = selectedElement.querySelector('.size-info');
+        if (sizeInfo) {
+          sizeInfo.style.display = 'block';
+        }
+      }
+    }
+
+    function hideSizeInfo() {
+      if (selectedElement) {
+        const sizeInfo = selectedElement.querySelector('.size-info');
+        if (sizeInfo) {
+          sizeInfo.style.display = 'none';
+        }
+      }
+    }
+
+    function endResize() {
+      initialResizeData = null;
     }
 
     function handleMouseUp() {
+      let shouldSaveHistory = false;
+
+      if (selectedElement) {
+        selectedElement.classList.remove('dragging', 'resizing');
+        // Save history if element was moved or resized
+        if (isDragging || isResizing) {
+          shouldSaveHistory = true;
+        }
+      }
+
       isDragging = false;
+      if (isResizing) {
+        endResize();
+      }
       isResizing = false;
       resizeHandle = '';
+
+      if (shouldSaveHistory) {
+        saveToHistory();
+      }
     }
 
     function selectElement(element) {
       if (selectedElement) {
         selectedElement.classList.remove('selected');
+        hideSizeInfo();
       }
 
       selectedElement = element;
       element.classList.add('selected');
       showPropertiesForElement(element);
       updatePropertiesPanel();
+      showSizeInfo();
     }
 
     function deselectElement() {
       if (selectedElement) {
         selectedElement.classList.remove('selected');
+        hideSizeInfo();
         selectedElement = null;
       }
 
@@ -958,6 +1160,9 @@
         if (elements.length === 0) {
           document.getElementById('canvasGuide').style.display = 'block';
         }
+
+        // Save to history
+        saveToHistory();
       }
     }
 
@@ -1101,6 +1306,118 @@
 
       renderLayers();
       return element;
+    }
+
+    function saveToHistory() {
+      const state = {
+        elements: elements.map(element => ({
+          id: element.dataset.id,
+          type: element.dataset.type,
+          x: parseFloat(element.style.left || 0),
+          y: parseFloat(element.style.top || 0),
+          width: element.offsetWidth,
+          height: element.offsetHeight,
+          styles: {
+            fontSize: element.style.fontSize,
+            fontWeight: element.style.fontWeight,
+            fontFamily: element.style.fontFamily,
+            color: element.style.color,
+            backgroundColor: element.style.backgroundColor,
+            borderColor: element.style.borderColor,
+            borderWidth: element.style.borderWidth,
+            borderRadius: element.style.borderRadius,
+            opacity: element.style.opacity,
+            backgroundImage: element.style.backgroundImage
+          },
+          content: element.textContent,
+          innerHTML: element.innerHTML
+        })),
+        background: { ...canvasBackground },
+        zoomLevel: zoomLevel,
+        selectedElementId: selectedElement ? selectedElement.dataset.id : null
+      };
+
+      // Remove any history after current index
+      history = history.slice(0, historyIndex + 1);
+
+      // Add new state
+      history.push(state);
+      historyIndex++;
+
+      // Limit history size
+      if (history.length > maxHistory) {
+        history.shift();
+        historyIndex--;
+      }
+
+      updateUndoRedoButtons();
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        restoreFromHistory(history[historyIndex]);
+        updateUndoRedoButtons();
+        showNotification('Undo');
+      }
+    }
+
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreFromHistory(history[historyIndex]);
+        updateUndoRedoButtons();
+        showNotification('Redo');
+      }
+    }
+
+    function updateUndoRedoButtons() {
+      const undoBtn = document.getElementById('undoBtn');
+      const redoBtn = document.getElementById('redoBtn');
+
+      if (undoBtn) {
+        undoBtn.disabled = historyIndex <= 0;
+      }
+      if (redoBtn) {
+        redoBtn.disabled = historyIndex >= history.length - 1;
+      }
+    }
+
+    function restoreFromHistory(state) {
+      // Clear current canvas
+      document.getElementById('idCardCanvas').innerHTML = '';
+      elements = [];
+
+      // Restore background
+      canvasBackground = { ...state.background };
+      applyBackgroundToCanvas();
+
+      // Restore zoom
+      zoomLevel = state.zoomLevel;
+      document.getElementById('zoomSlider').value = zoomLevel;
+      document.getElementById('zoomValue').textContent = zoomLevel + '%';
+      updateCanvasZoom();
+
+      // Restore elements
+      state.elements.forEach(elementData => {
+        const element = createElementFromData(elementData);
+        if (element.dataset.id === state.selectedElementId) {
+          selectElement(element);
+        } else {
+          element.classList.remove('selected');
+          element.querySelectorAll('.resize-handle').forEach(handle => {
+            handle.style.display = 'none';
+          });
+        }
+      });
+
+      renderLayers();
+
+      // Hide guide if elements exist
+      const guide = document.getElementById('canvasGuide');
+      if (guide) {
+        guide.style.display = elements.length === 0 ? 'block' : 'none';
+      }
     }
 
     function showNotification(message) {
@@ -1322,6 +1639,7 @@
 
           renderLayers();
           deselectElement();
+          updateUndoRedoButtons();
           showNotification('Template loaded successfully');
         } else {
           showNotification('No saved template found');
