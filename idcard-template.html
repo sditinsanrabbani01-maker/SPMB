@@ -15,7 +15,7 @@
     .top-bar { background: white; padding: 15px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .workspace { flex: 1; display: flex; padding: 20px; }
     .canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #f0f0f0; }
-    .id-card-canvas { width: 350px; height: 220px; border: 2px solid #3498db; position: relative; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.2); overflow: hidden; }
+    .id-card-canvas { width: 350px; height: 220px; border: 2px solid #3498db; position: relative; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.2); overflow: hidden; background-image: linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px); background-size: 20px 20px; }
     .properties-panel { width: 300px; background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; }
     .element { position: absolute; cursor: move; user-select: none; border: 2px solid transparent; }
     .element.selected { border-color: #3498db; box-shadow: 0 0 10px rgba(52, 152, 219, 0.5); }
@@ -323,6 +323,9 @@
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
 
+      // Keyboard events
+      document.addEventListener('keydown', handleKeyDown);
+
       // Zoom controls
       document.getElementById('zoomSlider').addEventListener('input', function(e) {
         zoomLevel = parseInt(e.target.value);
@@ -335,6 +338,102 @@
 
       // Prevent context menu on canvas
       canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+      // Prevent text selection on canvas
+      canvas.addEventListener('selectstart', e => e.preventDefault());
+    }
+
+    function makeElementEditable(element) {
+      if (element.dataset.type !== 'text') return;
+
+      // Store current text
+      const currentText = element.textContent;
+
+      // Create input field
+      const input = document.createElement('textarea');
+      input.value = currentText;
+      input.style.width = element.offsetWidth + 'px';
+      input.style.height = element.offsetHeight + 'px';
+      input.style.border = '1px solid #3498db';
+      input.style.fontSize = element.style.fontSize;
+      input.style.fontFamily = element.style.fontFamily;
+      input.style.fontWeight = element.style.fontWeight;
+      input.style.color = element.style.color;
+      input.style.background = 'white';
+      input.style.resize = 'none';
+      input.style.outline = 'none';
+      input.style.padding = '2px';
+
+      // Position input over element
+      input.style.position = 'absolute';
+      input.style.left = element.style.left;
+      input.style.top = element.style.top;
+      input.style.zIndex = '1000';
+
+      // Replace element content temporarily
+      element.innerHTML = '';
+      element.appendChild(input);
+      input.focus();
+      input.select();
+
+      // Handle input events
+      input.addEventListener('blur', function() {
+        saveTextEdit(element, input.value);
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          saveTextEdit(element, input.value);
+        }
+        if (e.key === 'Escape') {
+          saveTextEdit(element, currentText);
+        }
+      });
+    }
+
+    function saveTextEdit(element, newText) {
+      element.textContent = newText || 'Double click to edit';
+      selectElement(element);
+      updatePropertiesPanel();
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedElement) {
+          deleteSelectedElement();
+          e.preventDefault();
+        }
+      }
+
+      // Escape to deselect
+      if (e.key === 'Escape') {
+        deselectElement();
+      }
+
+      // Ctrl+C for copy
+      if (e.ctrlKey && e.key === 'c' && selectedElement) {
+        copySelectedElement();
+        e.preventDefault();
+      }
+
+      // Ctrl+V for paste
+      if (e.ctrlKey && e.key === 'v') {
+        pasteElement();
+        e.preventDefault();
+      }
+
+      // Ctrl+D for duplicate
+      if (e.ctrlKey && e.key === 'd' && selectedElement) {
+        duplicateElement();
+        e.preventDefault();
+      }
+
+      // Ctrl+Z for undo (placeholder - could be implemented later)
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        // TODO: Implement undo functionality
+      }
     }
 
     function setupToolbar() {
@@ -383,8 +482,15 @@
     function handleCanvasMouseDown(e) {
       const canvas = document.getElementById('idCardCanvas');
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / (zoomLevel / 100);
-      const y = (e.clientY - rect.top) / (zoomLevel / 100);
+
+      // Calculate mouse position relative to canvas, accounting for zoom and centering
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const scale = zoomLevel / 100;
+
+      // Transform mouse coordinates to canvas coordinates
+      const x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2);
+      const y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2);
 
       if (currentTool === 'select') {
         handleSelectTool(e, x, y);
@@ -406,11 +512,13 @@
           resizeHandle = handle;
         } else {
           isDragging = true;
-          const rect = clickedElement.getBoundingClientRect();
-          const canvasRect = document.getElementById('idCardCanvas').getBoundingClientRect();
-          dragOffset.x = (e.clientX - canvasRect.left) / (zoomLevel / 100) - parseFloat(clickedElement.style.left || 0);
-          dragOffset.y = (e.clientY - canvasRect.top) / (zoomLevel / 100) - parseFloat(clickedElement.style.top || 0);
+          dragOffset.x = e.offsetX || 0;
+          dragOffset.y = e.offsetY || 0;
         }
+      } else {
+        deselectElement();
+      }
+    }
       } else {
         deselectElement();
       }
@@ -427,7 +535,6 @@
       switch (type) {
         case 'text':
           element.classList.add('text-element');
-          element.contentEditable = true;
           element.textContent = 'Double click to edit';
           element.style.fontSize = '12px';
           element.style.color = '#333';
@@ -435,6 +542,20 @@
           element.style.fontWeight = 'normal';
           element.style.width = '150px';
           element.style.minHeight = '20px';
+          element.style.cursor = 'text';
+
+          // Add click/double-click to edit
+          element.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentTool === 'select') {
+              selectElement(element);
+            }
+          });
+
+          element.addEventListener('dblclick', function(e) {
+            e.stopPropagation();
+            makeElementEditable(element);
+          });
           break;
 
         case 'rectangle':
@@ -461,6 +582,25 @@
           element.innerHTML = '<i class="fas fa-image" style="font-size: 24px; color: #ccc;"></i>';
           break;
       }
+
+      // Add event listeners
+      element.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        if (currentTool === 'select') {
+          selectElement(element);
+
+          // Check if clicking on resize handle
+          const handle = getResizeHandleAtPosition(e, element);
+          if (handle) {
+            isResizing = true;
+            resizeHandle = handle;
+          } else {
+            isDragging = true;
+            dragOffset.x = e.offsetX || 0;
+            dragOffset.y = e.offsetY || 0;
+          }
+        }
+      });
 
       // Add resize handles
       addResizeHandles(element);
@@ -526,9 +666,15 @@
     function handleMouseMove(e) {
       if (isDragging && selectedElement) {
         const canvas = document.getElementById('idCardCanvas');
-        const canvasRect = canvas.getBoundingClientRect();
-        let x = (e.clientX - canvasRect.left) / (zoomLevel / 100) - dragOffset.x;
-        let y = (e.clientY - canvasRect.top) / (zoomLevel / 100) - dragOffset.y;
+        const rect = canvas.getBoundingClientRect();
+
+        // Use same coordinate calculation as handleCanvasMouseDown
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const scale = zoomLevel / 100;
+
+        let x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2) - dragOffset.x;
+        let y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2) - dragOffset.y;
 
         // Constrain to canvas bounds
         const maxX = canvas.offsetWidth - selectedElement.offsetWidth;
@@ -547,9 +693,15 @@
 
     function handleResize(e) {
       const canvas = document.getElementById('idCardCanvas');
-      const canvasRect = canvas.getBoundingClientRect();
-      const x = (e.clientX - canvasRect.left) / (zoomLevel / 100);
-      const y = (e.clientY - canvasRect.top) / (zoomLevel / 100);
+      const rect = canvas.getBoundingClientRect();
+
+      // Use same coordinate calculation as handleCanvasMouseDown
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const scale = zoomLevel / 100;
+
+      const x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2);
+      const y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2);
 
       const currentX = parseFloat(selectedElement.style.left || 0);
       const currentY = parseFloat(selectedElement.style.top || 0);
@@ -725,6 +877,142 @@
       }
     }
 
+    let clipboardElement = null;
+
+    function copySelectedElement() {
+      if (selectedElement) {
+        clipboardElement = {
+          type: selectedElement.dataset.type,
+          x: parseFloat(selectedElement.style.left || 0),
+          y: parseFloat(selectedElement.style.top || 0),
+          width: selectedElement.offsetWidth,
+          height: selectedElement.offsetHeight,
+          styles: {
+            fontSize: selectedElement.style.fontSize,
+            fontWeight: selectedElement.style.fontWeight,
+            fontFamily: selectedElement.style.fontFamily,
+            color: selectedElement.style.color,
+            backgroundColor: selectedElement.style.backgroundColor,
+            borderColor: selectedElement.style.borderColor,
+            borderWidth: selectedElement.style.borderWidth,
+            borderRadius: selectedElement.style.borderRadius,
+            opacity: selectedElement.style.opacity,
+            backgroundImage: selectedElement.style.backgroundImage
+          },
+          content: selectedElement.textContent,
+          innerHTML: selectedElement.innerHTML
+        };
+
+        showNotification('Element copied to clipboard');
+      }
+    }
+
+    function pasteElement() {
+      if (clipboardElement) {
+        // Offset pasted element slightly
+        const newElement = createElementFromData({
+          ...clipboardElement,
+          x: clipboardElement.x + 10,
+          y: clipboardElement.y + 10
+        });
+
+        selectElement(newElement);
+        showNotification('Element pasted');
+      }
+    }
+
+    function duplicateElement() {
+      if (selectedElement) {
+        copySelectedElement();
+        pasteElement();
+      }
+    }
+
+    function createElementFromData(data) {
+      const element = document.createElement('div');
+      element.className = 'element';
+      element.dataset.type = data.type;
+      element.dataset.id = Date.now();
+      element.style.left = data.x + 'px';
+      element.style.top = data.y + 'px';
+      element.style.width = data.width + 'px';
+      element.style.height = data.height + 'px';
+
+      // Apply styles
+      Object.assign(element.style, data.styles);
+
+      // Set content
+      if (data.type === 'text') {
+        element.classList.add('text-element');
+        element.textContent = data.content;
+        element.style.cursor = 'text';
+
+        // Add event listeners
+        element.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (currentTool === 'select') {
+            selectElement(element);
+          }
+        });
+
+        element.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          makeElementEditable(element);
+        });
+      } else {
+        element.innerHTML = data.innerHTML;
+      }
+
+      // Add mousedown event for all types
+      element.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        if (currentTool === 'select') {
+          selectElement(element);
+
+          const handle = getResizeHandleAtPosition(e, element);
+          if (handle) {
+            isResizing = true;
+            resizeHandle = handle;
+          } else {
+            isDragging = true;
+            dragOffset.x = e.offsetX || 0;
+            dragOffset.y = e.offsetY || 0;
+          }
+        }
+      });
+
+      // Add resize handles
+      addResizeHandles(element);
+
+      // Add to canvas and elements array
+      document.getElementById('idCardCanvas').appendChild(element);
+      elements.push(element);
+
+      renderLayers();
+      return element;
+    }
+
+    function showNotification(message) {
+      // Simple notification - could be improved with a proper notification system
+      const notification = document.createElement('div');
+      notification.textContent = message;
+      notification.style.position = 'fixed';
+      notification.style.top = '20px';
+      notification.style.right = '20px';
+      notification.style.background = '#3498db';
+      notification.style.color = 'white';
+      notification.style.padding = '10px 20px';
+      notification.style.borderRadius = '5px';
+      notification.style.zIndex = '10000';
+      notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.remove();
+      }, 2000);
+    }
+
     function renderLayers() {
       const layersList = document.getElementById('layersList');
       layersList.innerHTML = '';
@@ -755,16 +1043,17 @@
     }
 
     function moveLayer(displayIndex, direction) {
-      // Convert display index to array index
+      // displayIndex is the position in the layers list (0 = top layer)
+      // Convert to array index (elements array has 0 = bottom layer)
       const arrayIndex = elements.length - 1 - displayIndex;
 
-      if (direction === 'up' && displayIndex > 0) {
-        // Move up in display = move down in array
+      if (direction === 'up' && arrayIndex < elements.length - 1) {
+        // Move up in layers (towards top) = move up in array
         const temp = elements[arrayIndex];
         elements[arrayIndex] = elements[arrayIndex + 1];
         elements[arrayIndex + 1] = temp;
-      } else if (direction === 'down' && displayIndex < elements.length - 1) {
-        // Move down in display = move up in array
+      } else if (direction === 'down' && arrayIndex > 0) {
+        // Move down in layers (towards bottom) = move down in array
         const temp = elements[arrayIndex];
         elements[arrayIndex] = elements[arrayIndex - 1];
         elements[arrayIndex - 1] = temp;
@@ -788,7 +1077,8 @@
       const type = element.dataset.type;
       switch (type) {
         case 'text':
-          return element.textContent.length > 20 ? element.textContent.substring(0, 20) + '...' : element.textContent;
+          const text = element.textContent.trim();
+          return text.length > 20 ? text.substring(0, 20) + '...' : text || 'Text';
         case 'rectangle': return 'Rectangle';
         case 'circle': return 'Circle';
         case 'image': return 'Image';
@@ -796,36 +1086,21 @@
       }
     }
 
-    function moveLayerUp(originalIndex) {
-      // Convert to array index (layers are shown in reverse order)
-      const index = elements.length - 1 - originalIndex;
-      if (index < elements.length - 1) {
-        const temp = elements[index];
-        elements[index] = elements[index + 1];
-        elements[index + 1] = temp;
-        renderCanvas();
-        renderLayers();
-      }
-    }
-
     function renderCanvas() {
       const canvas = document.getElementById('idCardCanvas');
-      // Clear canvas except background
-      const backgroundElements = [];
-      const contentElements = [];
 
-      Array.from(canvas.children).forEach(child => {
-        if (child.classList.contains('element')) {
-          contentElements.push(child);
-        } else {
-          backgroundElements.push(child);
-        }
-      });
+      // Store current background
+      const currentBackground = canvas.style.backgroundColor || '#ffffff';
+      const currentBackgroundImage = canvas.style.backgroundImage || 'none';
 
-      // Remove content elements
-      contentElements.forEach(el => el.remove());
+      // Clear all children
+      canvas.innerHTML = '';
 
-      // Re-add elements in correct order
+      // Restore background
+      canvas.style.backgroundColor = currentBackground;
+      canvas.style.backgroundImage = currentBackgroundImage;
+
+      // Re-add elements in correct order (from bottom to top)
       elements.forEach(element => {
         canvas.appendChild(element);
       });
@@ -834,6 +1109,7 @@
     function updateCanvasZoom() {
       const canvas = document.getElementById('idCardCanvas');
       canvas.style.transform = `scale(${zoomLevel / 100})`;
+      canvas.style.transformOrigin = 'center center';
     }
 
     function rgbToHex(color) {
@@ -887,55 +1163,51 @@
     }
 
     function loadTemplate() {
-      const saved = localStorage.getItem('idCardDesignerTemplate');
-      if (saved) {
-        const template = JSON.parse(saved);
+      try {
+        const saved = localStorage.getItem('idCardDesignerTemplate');
+        if (saved) {
+          const template = JSON.parse(saved);
 
-        // Clear current canvas
-        document.getElementById('idCardCanvas').innerHTML = '';
-        elements = [];
+          // Clear current canvas
+          document.getElementById('idCardCanvas').innerHTML = '';
+          elements = [];
+          selectedElement = null;
 
-        // Load background
-        canvasBackground = template.background || { type: 'color', value: '#ffffff' };
-        applyBackgroundToCanvas();
+          // Load background
+          canvasBackground = template.background || { type: 'color', value: '#ffffff' };
+          applyBackgroundToCanvas();
 
-        // Load zoom
-        zoomLevel = template.zoomLevel || 100;
-        document.getElementById('zoomSlider').value = zoomLevel;
-        document.getElementById('zoomValue').textContent = zoomLevel + '%';
-        updateCanvasZoom();
+          // Load zoom
+          zoomLevel = template.zoomLevel || 100;
+          document.getElementById('zoomSlider').value = zoomLevel;
+          document.getElementById('zoomValue').textContent = zoomLevel + '%';
+          updateCanvasZoom();
 
-        // Load elements
-        template.elements.forEach(elementData => {
-          const element = document.createElement('div');
-          element.className = 'element';
-          element.dataset.type = elementData.type;
-          element.dataset.id = elementData.id;
-          element.style.left = elementData.x + 'px';
-          element.style.top = elementData.y + 'px';
-          element.style.width = elementData.width + 'px';
-          element.style.height = elementData.height + 'px';
-
-          // Apply styles
-          Object.assign(element.style, elementData.styles);
-
-          // Set content
-          if (elementData.type === 'text') {
-            element.contentEditable = true;
-            element.textContent = elementData.content;
-          } else {
-            element.innerHTML = elementData.innerHTML;
+          // Load elements
+          if (template.elements && Array.isArray(template.elements)) {
+            template.elements.forEach(elementData => {
+              try {
+                const element = createElementFromData(elementData);
+                // Don't select the loaded elements
+                element.classList.remove('selected');
+                element.querySelectorAll('.resize-handle').forEach(handle => {
+                  handle.style.display = 'none';
+                });
+              } catch (error) {
+                console.error('Error loading element:', error, elementData);
+              }
+            });
           }
 
-          // Add resize handles
-          addResizeHandles(element);
-
-          // Add to canvas
-          document.getElementById('idCardCanvas').appendChild(element);
-          elements.push(element);
-        });
-
-        renderLayers();
+          renderLayers();
+          deselectElement();
+          showNotification('Template loaded successfully');
+        } else {
+          showNotification('No saved template found');
+        }
+      } catch (error) {
+        console.error('Error loading template:', error);
+        showNotification('Error loading template');
       }
     }
 
