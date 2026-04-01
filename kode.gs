@@ -569,7 +569,11 @@ function getWhatsAppGroups() {
 
 // Function to add numbers to a WhatsApp group
 function addNumbersToGroup(groupId, numbers) {
-  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Device ID as API key
+  // Try different API key formats - you may need to replace this with your actual API key from WhaCenter
+  var apiKey = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946"; // Current device ID
+
+  Logger.log("Trying API key: " + apiKey);
+
   var url = "https://api.whacenter.com/api/addNumberToGroup";
   var payload = {
     api_key: apiKey,
@@ -875,4 +879,57 @@ function testSimulateFormSubmission() {
   Logger.log("Test submission result: " + result);
 
   return result;
+}
+
+// Test function to try different API keys
+function testAPIKeys() {
+  Logger.log("=== Testing Different API Keys ===");
+
+  var testKeys = [
+    "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946", // Current device ID
+    "your_actual_api_key_here", // Replace with real API key from WhaCenter
+    // Add more keys to test here
+  ];
+
+  var groupId = "120363407082974441@g.us";
+  var testNumbers = ["6282196910108"];
+
+  for (var i = 0; i < testKeys.length; i++) {
+    Logger.log("Testing API key " + (i+1) + ": " + testKeys[i]);
+
+    try {
+      var url = "https://api.whacenter.com/api/addNumberToGroup";
+      var payload = {
+        api_key: testKeys[i],
+        group_id: groupId,
+        data: testNumbers
+      };
+      var options = {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      var response = UrlFetchApp.fetch(url, options);
+      var responseCode = response.getResponseCode();
+      var responseText = response.getContentText();
+
+      Logger.log("API Key " + testKeys[i] + " - Response code: " + responseCode);
+      Logger.log("Response: " + responseText);
+
+      if (responseCode === 200) {
+        var result = JSON.parse(responseText);
+        if (result.success) {
+          Logger.log("✅ SUCCESS! API key " + testKeys[i] + " works!");
+          return testKeys[i];
+        }
+      }
+    } catch (e) {
+      Logger.log("API Key " + testKeys[i] + " - Error: " + e.toString());
+    }
+  }
+
+  Logger.log("❌ No working API key found. Please check your WhaCenter account for the correct API key.");
+  return null;
 }
