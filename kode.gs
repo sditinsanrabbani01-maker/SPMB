@@ -836,6 +836,14 @@ function testSendAllGroupInvitations() {
   return result;
 }
 
+// Test function to check CP contacts
+function testGetCPContacts() {
+  Logger.log("=== Testing getCPContacts ===");
+  var result = handleGetCPContacts();
+  Logger.log("CP Contacts result: " + JSON.stringify(result));
+  return result;
+}
+
 // Test function to check current data in sheets
 function testCheckDataSheets() {
   Logger.log("=== Testing Data Sheets ===");
@@ -876,6 +884,18 @@ function testCheckDataSheets() {
     Logger.log("Settings: " + JSON.stringify(settings));
   } else {
     Logger.log("✗ Settings sheet not found");
+  }
+
+  // Check CP/Contact Person sheet
+  var cpSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("CP/Contact Person");
+  if (cpSheet) {
+    var cpRows = cpSheet.getDataRange().getValues();
+    Logger.log("CP/Contact Person sheet has " + (cpRows.length - 1) + " CP rows");
+    for (var i = 1; i < cpRows.length; i++) {
+      Logger.log("CP Row " + i + ": " + JSON.stringify(cpRows[i]));
+    }
+  } else {
+    Logger.log("✗ CP/Contact Person sheet not found");
   }
 }
 
