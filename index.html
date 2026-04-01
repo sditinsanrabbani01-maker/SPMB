@@ -1,8 +1,38 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <title>SPMB Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistem Pendaftaran Peserta Didik Baru (SPMB) Online SDIT Insan Rabbani. Daftar sekarang untuk tahun ajaran 2026/2027 dengan proses pendaftaran yang mudah dan terintegrasi.">
+  <meta name="keywords" content="SPMB, pendaftaran siswa baru, SDIT Insan Rabbani, penerimaan siswa baru, sekolah dasar, tahun ajaran 2026/2027, pendaftaran online">
+  <meta name="author" content="SDIT Insan Rabbani">
+  <title>SPMB Online - Pendaftaran Siswa Baru SDIT Insan Rabbani</title>
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://spmb.sditinsanrabbani.sch.id/">
+  <meta property="og:title" content="SPMB Online - Pendaftaran Siswa Baru SDIT Insan Rabbani">
+  <meta property="og:description" content="Sistem Pendaftaran Peserta Didik Baru (SPMB) Online SDIT Insan Rabbani. Daftar sekarang untuk tahun ajaran 2026/2027 dengan proses pendaftaran yang mudah dan terintegrasi.">
+  <meta property="og:image" content="https://spmb.sditinsanrabbani.sch.id/3.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="SDIT Insan Rabbani">
+  <meta property="og:locale" content="id_ID">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://spmb.sditinsanrabbani.sch.id/">
+  <meta property="twitter:title" content="SPMB Online - Pendaftaran Siswa Baru SDIT Insan Rabbani">
+  <meta property="twitter:description" content="Sistem Pendaftaran Peserta Didik Baru (SPMB) Online SDIT Insan Rabbani. Daftar sekarang untuk tahun ajaran 2026/2027 dengan proses pendaftaran yang mudah dan terintegrasi.">
+  <meta property="twitter:image" content="https://spmb.sditinsanrabbani.sch.id/3.jpg">
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -14,24 +44,47 @@
     .card-custom { border: none; border-radius: 15px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .card-custom:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
     .btn-custom-blue { background: #0141a4; color: white; border: none; border-radius: 10px; }
+    .language-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+    .language-toggle button {
+      padding: 5px 10px;
+      font-size: 0.9rem;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+    }
+    .language-toggle button.active {
+      background: #00B4DB;
+      color: white;
+      border-color: #00B4DB;
+    }
   </style>
 </head>
 <body>
+  <div class="language-toggle">
+    <button id="idButton" class="active">ID</button>
+    <button id="enButton">EN</button>
+  </div>
   <div class="hero-section text-center">
-    <div class="container">
-      <h1 class="display-4 fw-bold" id="heroTitle">Selamat Datang di SPMB SDIT INSAN RABBANI Online</h1>
-      <p class="lead" id="heroSub">Tahun Ajaran 2026/2027</p>
-      <p class="fst-italic" id="heroQuote">"Wujudkan Generasi Qurani Sejak Dini Bersama Kami"</p>
-      <div id="registrationAlert" class="alert alert-warning mt-4 d-none" role="alert">
-        <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Pendaftaran Sedang Ditutup</h5>
-        <p class="mb-0">Pendaftaran SPMB akan dibuka pada waktu yang telah ditentukan. Silakan cek kembali nanti.</p>
-      </div>
-      <div class="mt-4" id="buttonContainer">
-        <a href="pembayaran.html" id="regButton" class="btn btn-lg btn-light fw-bold mx-2 px-4 shadow-sm"><i class="fas fa-user-plus me-2"></i>Daftar Sekarang</a>
-        <a href="cek.html" class="btn btn-lg btn-outline-light fw-bold mx-2 px-4"><i class="fas fa-search me-2"></i>Cek Pendaftaran</a>
-      </div>
+  <div class="container">
+    <h1 class="display-4 fw-bold" id="heroTitle">Selamat Datang di SPMB SDIT INSAN RABBANI Online</h1>
+    <p class="lead" id="heroSub">Tahun Ajaran 2026/2027</p>
+    <p class="fst-italic" id="heroQuote">"Wujudkan Generasi Qurani Sejak Dini Bersama Kami"</p>
+    <div id="registrationAlert" class="alert alert-warning mt-4 d-none" role="alert">
+      <h5 class="alert-heading"><i class="fas fa-clock me-2"></i>Pendaftaran Sedang Ditutup</h5>
+      <p class="mb-0">Pendaftaran SPMB akan dibuka pada waktu yang telah ditentukan. Silakan cek kembali nanti.</p>
+    </div>
+    <div class="mt-4" id="buttonContainer">
+      <a href="pembayaran.html" id="regButton" class="btn btn-lg btn-light fw-bold mx-2 px-4 shadow-sm"><i class="fas fa-user-plus me-2"></i>Daftar Sekarang</a>
+      <a href="cek.html" class="btn btn-lg btn-outline-light fw-bold mx-2 px-4"><i class="fas fa-search me-2"></i>Cek Pendaftaran</a>
     </div>
   </div>
+</div>
 
   <!-- Banner Section -->
   <div class="container my-4">
@@ -179,7 +232,208 @@
   </div>
 
   <script src="config.js"></script>
-  <script>
+   <script>
+     // Language translations
+     const translations = {
+       id: {
+         heroTitle: "Selamat Datang di SPMB SDIT INSAN RABBANI Online",
+         heroSub: "Tahun Ajaran 2026/2027",
+         heroQuote: "\"Wujudkan Generasi Qurani Sejak Dini Bersama Kami\"",
+         registrationAlertHeading: "Pendaftaran Sedang Ditutup",
+         registrationAlertText: "Pendaftaran SPMB akan dibuka pada waktu yang telah ditentukan. Silakan cek kembali nanti.",
+         regButtonText: "Daftar Sekarang",
+         cekButtonText: "Cek Pendaftaran",
+         visiMisiTitle: "Visi & Misi SDIT Insan Rabbani",
+         visiTitle: "Visi",
+         visiText: "Religius & Unggul",
+        misiTitle: "Misi",
+        misiItem1: "Mewujudkan pendidikan religius dengan pengamalan Al Qur'an dan As Sunnah sesuai dengan pemahaman salafusshaleh.",
+        misiItem2: "Mewujudkan sekolah yang unggul dan berdaya saing dengan mengembangkan pembelajaran mendalam yang menumbuhkan kemampuan berpikir kritis, kreatif, kolaboratif, dan komunikatif, serta membentuk peserta didik yang rajin beribadah, peduli dan berbagi, cinta lingkungan dan tanah air.",
+        misiItem3: "Mewujudkan sekolah yang memiliki wawasan dalam pelestarian, pemeliharaan dan pencegahan kerusakan ekosistem lingkungan.",
+        deskripsiSekolahTitle: "Deskripsi Sekolah",
+        deskripsiSekolahText: "Menerapkan kurikulum terpadu dengan fasilitas digital modern yang menunjang pembelajaran.",
+        areaTerbatasTitle: "Area Terbatas",
+        areaTerbatasText: "Khusus untuk panitia penerimaan peserta didik baru.",
+        loginButtonText: "Login Admin",
+        informasiPendaftaranTitle: "Jadwal Pendaftaran & Biaya Registrasi",
+        informasiPendaftaranText: "Informasi lengkap jadwal, persyaratan, biaya, dan rekening pembayaran",
+        contactPersonTitle: "Contact Person & Link Pendaftaran",
+        contactPersonText: "Informasi kontak panitia dan QR code serta link pendaftaran online",
+        lihatDetailText: "Lihat Detail",
+        galeriKegiatanTitle: "Galeri Kegiatan",
+        futsalAlt: "Futsal",
+        futsalTitle: "Futsal",
+        futsalText: "Kegiatan olahraga futsal yang menyenangkan dan membangun teamwork.",
+        khotmulQuranAlt: "Khotmul Quran & Imtihan",
+        khotmulQuranTitle: "Khotmul Quran & Imtihan",
+        khotmulQuranText: "Kegiatan khotmul Quran dan imtihan menggunakan Metode Ummi di SDIT Insan Rabbani.",
+        munaqosyahAlt: "Munaqosyah",
+        munaqosyahTitle: "Munaqosyah",
+        munaqosyahText: "Kegiatan munaqosyah menggunakan Metode Ummi di SDIT Insan Rabbani.",
+        panahanAlt: "Panahan",
+        panahanTitle: "Panahan",
+        panahanText: "Kegiatan olahraga panahan yang mengasah ketepatan dan konsentrasi.",
+        pramukaAlt: "Pramuka",
+        pramukaTitle: "Pramuka",
+        pramukaText: "Kegiatan pramuka untuk membentuk karakter dan kemandirian siswa.",
+        mabitAlt: "Mabit",
+        mabitTitle: "Mabit",
+        mabitText: "Malam Bina Iman dan Taqwa (Mabit) untuk memperkuat iman dan taqwa siswa."
+      },
+      en: {
+        heroTitle: "Welcome to SPMB SDIT Insan Rabbani Online",
+        heroSub: "Academic Year 2026/2027",
+        heroQuote: "\"Building Quranic Generation Since Early Age Together With Us\"",
+        registrationAlertHeading: "Registration is Currently Closed",
+        registrationAlertText: "SPMB registration will open at the determined time. Please check back later.",
+        regButtonText: "Register Now",
+        cekButtonText: "Check Registration",
+        visiMisiTitle: "Vision & Mission SDIT Insan Rabbani",
+        visiTitle: "Vision",
+        visiText: "Religious & Excellent",
+        misiTitle: "Mission",
+        misiItem1: "To realize religious education through the practice of Al Quran and As Sunnah according to the understanding of salafusshaleh.",
+        misiItem2: "To realize an excellent and competitive school by developing in-depth learning that fosters critical, creative, collaborative, and communicative thinking skills, and forms students who are diligent in worship, caring and sharing, loving the environment and homeland.",
+        misiItem3: "To realize a school with insight in the preservation, maintenance and prevention of environmental ecosystem damage.",
+        deskripsiSekolahTitle: "School Description",
+        deskripsiSekolahText: "Implementing an integrated curriculum with modern digital facilities that support learning.",
+        areaTerbatasTitle: "Restricted Area",
+        areaTerbatasText: "Exclusively for the new student admission committee.",
+        loginButtonText: "Admin Login",
+        informasiPendaftaranTitle: "Registration Schedule & Fees",
+        informasiPendaftaranText: "Complete information about schedule, requirements, fees, and payment accounts",
+        contactPersonTitle: "Contact Person & Registration Link",
+        contactPersonText: "Contact information of the committee and QR code as well as online registration link",
+        lihatDetailText: "View Details",
+        galeriKegiatanTitle: "Activity Gallery",
+        futsalAlt: "Futsal",
+        futsalTitle: "Futsal",
+        futsalText: "Futsal sports activities that are fun and build teamwork.",
+        khotmulQuranAlt: "Quran Khotmah & Examination",
+        khotmulQuranTitle: "Quran Khotmah & Examination",
+        khotmulQuranText: "Quran khotmah and examination activities using the Ummi method at SDIT Insan Rabbani.",
+        munaqosyahAlt: "Munaqosyah",
+        munaqosyahTitle: "Munaqosyah",
+        munaqosyahText: "Munaqosyah activities using the Ummi method at SDIT Insan Rabbani.",
+        panahanAlt: "Archery",
+        panahanTitle: "Archery",
+        panahanText: "Archery sports activities that hone accuracy and concentration.",
+        pramukaAlt: "Scout",
+        pramukaTitle: "Scout",
+        pramukaText: "Scout activities to shape character and independence of students.",
+        mabitAlt: "Mabit",
+        mabitTitle: "Mabit",
+        mabitText: "Evening Faith and Piety Building (Mabit) to strengthen students' faith and piety."
+      }
+    };
+
+    function setLanguage(lang) {
+      // Update active button
+      document.getElementById('idButton').classList.toggle('active', lang === 'id');
+      document.getElementById('enButton').classList.toggle('active', lang === 'en');
+      
+      // Update HTML lang attribute
+      document.documentElement.lang = lang;
+      
+      // Update content
+      const t = translations[lang];
+      document.getElementById('heroTitle').innerText = t.heroTitle;
+      document.getElementById('heroSub').innerText = t.heroSub;
+      document.getElementById('heroQuote').innerText = t.heroQuote;
+      
+      // Update registration alert
+      const registrationAlertHeading = document.querySelector('#registrationAlert .alert-heading');
+      if (registrationAlertHeading) {
+        registrationAlertHeading.innerHTML = `<i class="fas fa-clock me-2"></i> ${t.registrationAlertHeading}`;
+      }
+      const registrationAlertText = document.querySelector('#registrationAlert p.mb-0');
+      if (registrationAlertText) {
+        registrationAlertText.innerText = t.registrationAlertText;
+      }
+      
+      // Update buttons
+      document.getElementById('regButton').innerHTML = `<i class="fas fa-user-plus me-2"></i> ${t.regButtonText}`;
+      document.querySelector('a[href="cek.html"]').innerHTML = `<i class="fas fa-search me-2"></i> ${t.cekButtonText}`;
+      
+      // Update Visi & Misi
+      document.querySelector('.card-title.fw-bold.mb-4.text-primary').innerText = t.visiMisiTitle;
+      document.querySelector('.bg-light p-3 p-md-4 rounded mb-4 h4.text-primary.mb-3').innerText = t.visiTitle;
+      document.querySelector('.bg-light p-3 p-md-4 rounded mb-4 p.display-5.display-6.fw-bold.text-success').innerText = t.visiText;
+      document.querySelector('h4.text-primary.mb-3:contains("Misi")').innerText = t.misiTitle;
+      const misiItems = document.querySelectorAll('.list-group-item.border-0.bg-transparent');
+      if (misiItems.length >= 3) {
+        misiItems[0].innerText = t.misiItem1;
+        misiItems[1].innerText = t.misiItem2;
+        misiItems[2].innerText = t.misiItem3;
+      }
+      
+      // Update Deskripsi Sekolah
+      document.querySelectorAll('.card-title.fw-bold')[1].innerText = t.deskripsiSekolahTitle;
+      document.querySelectorAll('.card-text.text-muted')[1].innerText = t.deskripsiSekolahText;
+      
+      // Update Area Terbatas
+      document.querySelectorAll('.card-title.fw-bold')[2].innerText = t.areaTerbatasTitle;
+      document.querySelectorAll('.card-text.text-muted')[2].innerText = t.areaTerbatasText;
+      document.querySelectorAll('.btn.btn-sm.btn-custom-blue')[0].innerHTML = `<i class="fas fa-sign-in-alt me-1"></i> ${t.loginButtonText}`;
+      
+      // Update Informasi Pendaftaran
+      document.querySelectorAll('.card-title.fw-bold.text-primary')[0].innerText = t.informasiPendaftaranTitle;
+      document.querySelectorAll('.card-text.text-muted')[3].innerText = t.informasiPendaftaranText;
+      document.querySelectorAll('.btn.btn-primary')[0].innerHTML = `Lihat Detail <i class="fas fa-arrow-right ms-1"></i>`;
+      
+      // Update Contact Person
+      document.querySelectorAll('.card-title.fw-bold.text-primary')[1].innerText = t.contactPersonTitle;
+      document.querySelectorAll('.card-text.text-muted')[4].innerText = t.contactPersonText;
+      document.querySelectorAll('.btn.btn-primary')[1].innerHTML = `Lihat Detail <i class="fas fa-arrow-right ms-1"></i>`;
+      
+      // Update Gallery Section
+      document.querySelector('h2.text-center.fw-bold.mb-4').innerText = t.galeriKegiatanTitle;
+      
+      // Update gallery images alt and text (this is simplified - in reality you'd need to update each individually)
+      // For brevity, we'll update a few key ones
+      const futsalImg = document.querySelector('img[alt="Futsal"]');
+      if (futsalImg) {
+        futsalImg.alt = t.futsalAlt;
+        futsalImg.parentElement.parentElement.querySelector('.card-title').innerText = t.futsalTitle;
+        futsalImg.parentElement.parentElement.querySelector('.card-text').innerText = t.futsalText;
+      }
+      
+      const khotmulImg = document.querySelector('img[alt="Khotmul Quran & Imtihan"]');
+      if (khotmulImg) {
+        khotmulImg.alt = t.khotmulQuranAlt;
+        khotmulImg.parentElement.parentElement.querySelector('.card-title').innerText = t.khotmulQuranTitle;
+        khotmulImg.parentElement.parentElement.querySelector('.card-text').innerText = t.khotmulQuranText;
+      }
+      
+      const munaqosyahImg = document.querySelector('img[alt="Munaqosyah"]');
+      if (munaqosyahImg) {
+        munaqosyahImg.alt = t.munaqosyahAlt;
+        munaqosyahImg.parentElement.parentElement.querySelector('.card-title').innerText = t.munaqosyahTitle;
+        munaqosyahImg.parentElement.parentElement.querySelector('.card-text').innerText = t.munaqosyahText;
+      }
+      
+      const panahanImg = document.querySelector('img[alt="Panahan"]');
+      if (panahanImg) {
+        panahanImg.alt = t.panahanAlt;
+        panahanImg.parentElement.parentElement.querySelector('.card-title').innerText = t.panahanTitle;
+        panahanImg.parentElement.parentElement.querySelector('.card-text').innerText = t.panahanText;
+      }
+      
+      const pramukaImg = document.querySelector('img[alt="Pramuka"]');
+      if (pramukaImg) {
+        pramukaImg.alt = t.pramukaAlt;
+        pramukaImg.parentElement.parentElement.querySelector('.card-title').innerText = t.pramukaTitle;
+        pramukaImg.parentElement.parentElement.querySelector('.card-text').innerText = t.pramukaText;
+      }
+      
+      const mabitImg = document.querySelector('img[alt="Mabit"]');
+      if (mabitImg) {
+        mabitImg.alt = t.mabitAlt;
+        mabitImg.parentElement.parentElement.querySelector('.card-title').innerText = t.mabitTitle;
+        mabitImg.parentElement.parentElement.querySelector('.card-text').innerText = t.mabitText;
+      }
+    }
+
     async function loadContent() {
       try {
         const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
@@ -201,7 +455,14 @@
         console.log('Failed to load dynamic content');
       }
     }
+
+    // Event listeners for language buttons
+    document.getElementById('idButton').addEventListener('click', () => setLanguage('id'));
+    document.getElementById('enButton').addEventListener('click', () => setLanguage('en'));
+
+    // Initialize with Indonesian language
+    setLanguage('id');
     loadContent();
-  </script>
+   </script>
 </body>
 </html>
