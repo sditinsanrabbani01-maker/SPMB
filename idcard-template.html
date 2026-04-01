@@ -10,7 +10,7 @@
     .toolbar { width: 80px; background: #2c3e50; color: white; padding: 20px 10px; display: flex; flex-direction: column; align-items: center; }
     .toolbar-item { width: 50px; height: 50px; margin: 5px 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; font-size: 20px; }
     .toolbar-item:hover { background: #34495e; transform: scale(1.05); }
-    .toolbar-item.active { background: #3498db; }
+    .toolbar-item.active { background: #3498db; box-shadow: 0 0 0 2px #2980b9; }
     .main-workspace { flex: 1; display: flex; flex-direction: column; }
     .top-bar { background: white; padding: 15px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .workspace { flex: 1; display: flex; padding: 20px; }
@@ -41,6 +41,9 @@
     .upload-area:hover { border-color: #3498db; background: #f8f9fa; }
     .upload-area.dragover { border-color: #27ae60; background: #d5f4e6; }
     .zoom-controls { position: absolute; bottom: 20px; right: 20px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .canvas-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #999; font-size: 14px; text-align: center; pointer-events: none; z-index: 1; }
+    .coordinates-display { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; display: none; z-index: 100; }
+    .canvas-guide strong { color: #666; }
     .zoom-slider { width: 150px; }
   </style>
 </head>
@@ -48,23 +51,26 @@
   <div class="designer-container">
     <!-- Left Toolbar -->
     <div class="toolbar">
-      <div class="toolbar-item" id="textTool" title="Add Text">
+      <div class="toolbar-item" id="selectTool" title="Select & Move Elements (V)" class="active">
+        <i class="fas fa-mouse-pointer"></i>
+      </div>
+      <div class="toolbar-item" id="textTool" title="Add Text Element (T)">
         <i class="fas fa-font"></i>
       </div>
-      <div class="toolbar-item" id="rectangleTool" title="Add Rectangle">
+      <div class="toolbar-item" id="rectangleTool" title="Add Rectangle Shape (R)">
         <i class="fas fa-square"></i>
       </div>
-      <div class="toolbar-item" id="circleTool" title="Add Circle">
+      <div class="toolbar-item" id="circleTool" title="Add Circle Shape (C)">
         <i class="fas fa-circle"></i>
       </div>
-      <div class="toolbar-item" id="imageTool" title="Add Image">
+      <div class="toolbar-item" id="lineTool" title="Add Line Element (L)">
+        <i class="fas fa-minus"></i>
+      </div>
+      <div class="toolbar-item" id="imageTool" title="Add Image Element (I)">
         <i class="fas fa-image"></i>
       </div>
-      <div class="toolbar-item" id="backgroundTool" title="Set Background">
+      <div class="toolbar-item" id="backgroundTool" title="Set Canvas Background (B)">
         <i class="fas fa-fill-drip"></i>
-      </div>
-      <div class="toolbar-item" id="selectTool" title="Select Tool" class="active">
-        <i class="fas fa-mouse-pointer"></i>
       </div>
     </div>
 
@@ -101,6 +107,12 @@
         <div class="canvas-container">
           <div class="id-card-canvas" id="idCardCanvas">
             <!-- Canvas elements will be added here -->
+            <div class="canvas-guide" id="canvasGuide">
+              <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+              <strong>Select a tool</strong> from the left toolbar and click here to add elements<br>
+              <small>Use mouse to drag, resize, and arrange elements</small>
+            </div>
+            <div class="coordinates-display" id="coordinatesDisplay">X: 0, Y: 0</div>
           </div>
 
           <!-- Zoom Controls -->
@@ -437,7 +449,7 @@
     }
 
     function setupToolbar() {
-      const tools = ['textTool', 'rectangleTool', 'circleTool', 'imageTool', 'backgroundTool', 'selectTool'];
+      const tools = ['selectTool', 'textTool', 'rectangleTool', 'circleTool', 'lineTool', 'imageTool', 'backgroundTool'];
 
       tools.forEach(toolId => {
         const tool = document.getElementById(toolId);
@@ -446,6 +458,21 @@
           document.querySelectorAll('.toolbar-item').forEach(t => t.classList.remove('active'));
           tool.classList.add('active');
         });
+      });
+
+      // Add keyboard shortcuts for tools
+      document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') return;
+
+        switch(e.key.toLowerCase()) {
+          case 'v': document.getElementById('selectTool').click(); break;
+          case 't': document.getElementById('textTool').click(); break;
+          case 'r': document.getElementById('rectangleTool').click(); break;
+          case 'c': document.getElementById('circleTool').click(); break;
+          case 'l': document.getElementById('lineTool').click(); break;
+          case 'i': document.getElementById('imageTool').click(); break;
+          case 'b': document.getElementById('backgroundTool').click(); break;
+        }
       });
     }
 
@@ -492,10 +519,13 @@
       const x = ((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2);
       const y = ((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2);
 
-      if (currentTool === 'select') {
-        handleSelectTool(e, x, y);
-      } else {
-        createNewElement(currentTool, x, y);
+      // Check if clicking on canvas itself (not on an element)
+      if (e.target === canvas) {
+        if (currentTool === 'select') {
+          deselectElement();
+        } else {
+          createNewElement(currentTool, x, y);
+        }
       }
     }
 
@@ -515,10 +545,6 @@
           dragOffset.x = e.offsetX || 0;
           dragOffset.y = e.offsetY || 0;
         }
-      } else {
-        deselectElement();
-      }
-    }
       } else {
         deselectElement();
       }
@@ -563,6 +589,15 @@
           element.style.width = '100px';
           element.style.height = '50px';
           element.style.backgroundColor = '#3498db';
+          element.style.cursor = 'move';
+
+          // Add click event for selection
+          element.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentTool === 'select') {
+              selectElement(element);
+            }
+          });
           break;
 
         case 'circle':
@@ -571,6 +606,31 @@
           element.style.height = '50px';
           element.style.backgroundColor = '#3498db';
           element.style.borderRadius = '50%';
+          element.style.cursor = 'move';
+
+          // Add click event for selection
+          element.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentTool === 'select') {
+              selectElement(element);
+            }
+          });
+          break;
+
+        case 'line':
+          element.classList.add('line-element');
+          element.style.width = '100px';
+          element.style.height = '2px';
+          element.style.backgroundColor = '#333';
+          element.style.cursor = 'move';
+
+          // Add click event for selection
+          element.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentTool === 'select') {
+              selectElement(element);
+            }
+          });
           break;
 
         case 'image':
@@ -580,27 +640,17 @@
           element.style.backgroundColor = '#f0f0f0';
           element.style.border = '2px dashed #ccc';
           element.innerHTML = '<i class="fas fa-image" style="font-size: 24px; color: #ccc;"></i>';
+          element.style.cursor = 'move';
+
+          // Add click event for selection
+          element.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentTool === 'select') {
+              selectElement(element);
+            }
+          });
           break;
       }
-
-      // Add event listeners
-      element.addEventListener('mousedown', function(e) {
-        e.stopPropagation();
-        if (currentTool === 'select') {
-          selectElement(element);
-
-          // Check if clicking on resize handle
-          const handle = getResizeHandleAtPosition(e, element);
-          if (handle) {
-            isResizing = true;
-            resizeHandle = handle;
-          } else {
-            isDragging = true;
-            dragOffset.x = e.offsetX || 0;
-            dragOffset.y = e.offsetY || 0;
-          }
-        }
-      });
 
       // Add resize handles
       addResizeHandles(element);
@@ -608,6 +658,11 @@
       // Add to canvas
       document.getElementById('idCardCanvas').appendChild(element);
       elements.push(element);
+
+      // Hide guide if this is the first element
+      if (elements.length === 1) {
+        document.getElementById('canvasGuide').style.display = 'none';
+      }
 
       // Select the new element
       selectElement(element);
@@ -664,6 +719,8 @@
     }
 
     function handleMouseMove(e) {
+      updateCoordinatesDisplay(e);
+
       if (isDragging && selectedElement) {
         const canvas = document.getElementById('idCardCanvas');
         const rect = canvas.getBoundingClientRect();
@@ -688,6 +745,28 @@
         updatePropertiesPanel();
       } else if (isResizing && selectedElement) {
         handleResize(e);
+      }
+    }
+
+    function updateCoordinatesDisplay(e) {
+      const canvas = document.getElementById('idCardCanvas');
+      const rect = canvas.getBoundingClientRect();
+      const display = document.getElementById('coordinatesDisplay');
+
+      if (rect.left <= e.clientX && e.clientX <= rect.right &&
+          rect.top <= e.clientY && e.clientY <= rect.bottom) {
+
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const scale = zoomLevel / 100;
+
+        const x = Math.round(((e.clientX - centerX) / scale) + (canvas.offsetWidth / 2));
+        const y = Math.round(((e.clientY - centerY) / scale) + (canvas.offsetHeight / 2));
+
+        display.textContent = `X: ${x}, Y: ${y}`;
+        display.style.display = 'block';
+      } else {
+        display.style.display = 'none';
       }
     }
 
@@ -783,7 +862,7 @@
       const type = element.dataset.type;
 
       document.getElementById('textProperties').style.display = type === 'text' ? 'block' : 'none';
-      document.getElementById('shapeProperties').style.display = (type === 'rectangle' || type === 'circle') ? 'block' : 'none';
+      document.getElementById('shapeProperties').style.display = (type === 'rectangle' || type === 'circle' || type === 'line') ? 'block' : 'none';
       document.getElementById('imageProperties').style.display = type === 'image' ? 'block' : 'none';
     }
 
@@ -806,7 +885,7 @@
         document.getElementById('fontWeight').value = selectedElement.style.fontWeight;
         document.getElementById('fontFamily').value = selectedElement.style.fontFamily;
         document.getElementById('textColor').value = rgbToHex(selectedElement.style.color);
-      } else if (type === 'rectangle' || type === 'circle') {
+      } else if (type === 'rectangle' || type === 'circle' || type === 'line') {
         document.getElementById('shapeColor').value = rgbToHex(selectedElement.style.backgroundColor);
         document.getElementById('borderColor').value = rgbToHex(selectedElement.style.borderColor || '#2980b9');
         document.getElementById('borderWidth').value = parseInt(selectedElement.style.borderWidth || 0);
@@ -826,7 +905,7 @@
         selectedElement.style.fontWeight = document.getElementById('fontWeight').value;
         selectedElement.style.fontFamily = document.getElementById('fontFamily').value;
         selectedElement.style.color = document.getElementById('textColor').value;
-      } else if (type === 'rectangle' || type === 'circle') {
+      } else if (type === 'rectangle' || type === 'circle' || type === 'line') {
         selectedElement.style.backgroundColor = document.getElementById('shapeColor').value;
         selectedElement.style.borderColor = document.getElementById('borderColor').value;
         selectedElement.style.borderWidth = document.getElementById('borderWidth').value + 'px';
@@ -874,6 +953,11 @@
         selectedElement.remove();
         deselectElement();
         renderLayers();
+
+        // Show guide if no elements left
+        if (elements.length === 0) {
+          document.getElementById('canvasGuide').style.display = 'block';
+        }
       }
     }
 
@@ -941,7 +1025,7 @@
       // Apply styles
       Object.assign(element.style, data.styles);
 
-      // Set content
+      // Set content and event listeners based on type
       if (data.type === 'text') {
         element.classList.add('text-element');
         element.textContent = data.content;
@@ -958,6 +1042,33 @@
         element.addEventListener('dblclick', function(e) {
           e.stopPropagation();
           makeElementEditable(element);
+        });
+      } else if (data.type === 'rectangle' || data.type === 'circle' || data.type === 'line') {
+        element.classList.add('shape-element');
+        if (data.type === 'line') {
+          element.classList.add('line-element');
+        }
+        element.innerHTML = data.innerHTML;
+        element.style.cursor = 'move';
+
+        // Add click event for selection
+        element.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (currentTool === 'select') {
+            selectElement(element);
+          }
+        });
+      } else if (data.type === 'image') {
+        element.classList.add('image-element');
+        element.innerHTML = data.innerHTML;
+        element.style.cursor = 'move';
+
+        // Add click event for selection
+        element.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (currentTool === 'select') {
+            selectElement(element);
+          }
         });
       } else {
         element.innerHTML = data.innerHTML;
@@ -1068,6 +1179,7 @@
         case 'text': return 'fas fa-font';
         case 'rectangle': return 'fas fa-square';
         case 'circle': return 'fas fa-circle';
+        case 'line': return 'fas fa-minus';
         case 'image': return 'fas fa-image';
         default: return 'fas fa-question';
       }
@@ -1081,6 +1193,7 @@
           return text.length > 20 ? text.substring(0, 20) + '...' : text || 'Text';
         case 'rectangle': return 'Rectangle';
         case 'circle': return 'Circle';
+        case 'line': return 'Line';
         case 'image': return 'Image';
         default: return 'Element';
       }
@@ -1088,22 +1201,30 @@
 
     function renderCanvas() {
       const canvas = document.getElementById('idCardCanvas');
+      const guide = document.getElementById('canvasGuide');
 
-      // Store current background
-      const currentBackground = canvas.style.backgroundColor || '#ffffff';
-      const currentBackgroundImage = canvas.style.backgroundImage || 'none';
+      // Clear canvas except background and guide
+      const backgroundElements = [];
+      const contentElements = [];
 
-      // Clear all children
-      canvas.innerHTML = '';
+      Array.from(canvas.children).forEach(child => {
+        if (child.classList.contains('element')) {
+          contentElements.push(child);
+        } else if (child !== guide) {
+          backgroundElements.push(child);
+        }
+      });
 
-      // Restore background
-      canvas.style.backgroundColor = currentBackground;
-      canvas.style.backgroundImage = currentBackgroundImage;
+      // Remove content elements
+      contentElements.forEach(el => el.remove());
 
-      // Re-add elements in correct order (from bottom to top)
+      // Re-add elements in correct order
       elements.forEach(element => {
         canvas.appendChild(element);
       });
+
+      // Show/hide guide based on elements count
+      guide.style.display = elements.length === 0 ? 'block' : 'none';
     }
 
     function updateCanvasZoom() {
@@ -1220,6 +1341,14 @@
         applyBackgroundToCanvas();
         deselectElement();
         renderLayers();
+
+        // Re-add guide
+        const canvas = document.getElementById('idCardCanvas');
+        const guide = document.createElement('div');
+        guide.className = 'canvas-guide';
+        guide.id = 'canvasGuide';
+        guide.innerHTML = '<i class="fas fa-info-circle fa-2x mb-2"></i><br><strong>Select a tool</strong> from the left toolbar and click here to add elements<br><small>Use mouse to drag, resize, and arrange elements</small>';
+        canvas.appendChild(guide);
       }
     }
 
