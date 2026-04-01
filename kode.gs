@@ -4,15 +4,21 @@
  */
 
 function doPost(e) {
+  Logger.log("=== GAS doPost called ===");
+  Logger.log("Raw request: " + e.postData.contents);
+
   try {
     var requestData = JSON.parse(e.postData.contents);
     var action = requestData.action;
+    Logger.log("Action: " + action);
 
     setupSheet();
 
     // 1. Aksi Submit Form Pendaftaran
     if (action === "submitForm") {
+      Logger.log("Processing submitForm action");
       var result = handleSubmit(requestData.data);
+      Logger.log("submitForm result: " + result);
       return createResponse({ success: true, regNo: result });
     }
 
@@ -81,18 +87,25 @@ function doPost(e) {
 
     // 12. Aksi Tambah Semua Nomor Ibu ke Group
     if (action === "addAllMothersToGroup") {
+      Logger.log("Processing addAllMothersToGroup action");
       var result = addAllMothersToGroup();
+      Logger.log("addAllMothersToGroup result: " + JSON.stringify(result));
       return createResponse(result);
     }
 
     // 13. Aksi Get WhatsApp Groups Info
     if (action === "getWhatsAppGroups") {
+      Logger.log("Processing getWhatsAppGroups action");
       var groups = getWhatsAppGroups();
+      Logger.log("getWhatsAppGroups result: " + JSON.stringify(groups));
       return createResponse({ success: true, data: groups });
     }
 
+    Logger.log("Unknown action: " + action);
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
   } catch (error) {
+    Logger.log("doPost error: " + error.toString());
+    Logger.log("Stack trace: " + error.stack);
     return createResponse({ success: false, message: "Server Error: " + error.toString() });
   }
 }
@@ -157,54 +170,53 @@ function setupSheet() {
 }
 
 function handleSubmit(data) {
+  Logger.log("=== handleSubmit called ===");
+  Logger.log("Data received: " + JSON.stringify(data));
+
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
   var year = new Date().getFullYear();
   var regNo = "SPMB-" + year + "-" + ("0000" + sheet.getLastRow()).slice(-4);
+  Logger.log("Generated regNo: " + regNo);
 
   sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.abk, data.alamat,
                     data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
                     data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
                     data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
+  Logger.log("Data saved to sheet successfully");
 
   // Send WhatsApp notification to parent
   var whatsappNumber = data.hpAyah || data.hpIbu;
   if (whatsappNumber) {
+    Logger.log("Sending WhatsApp to parent: " + whatsappNumber);
     var message = "Pendaftaran SPMB SDIT Insan Rabbani berhasil!\n\nNo Registrasi: " + regNo + "\nNama: " + data.nama + "\nStatus: MENUNGGU\n\nSilakan cek status pendaftaran secara berkala.";
-    sendWhatsAppMessage(whatsappNumber, message);
+    var waResult = sendWhatsAppMessage(whatsappNumber, message);
+    Logger.log("Parent WhatsApp result: " + waResult);
+  } else {
+    Logger.log("No WhatsApp number found for parent");
   }
-  
+
   // Send WhatsApp notification to CP/Contact Person
   var cpNumbers = getCPContactNumbers();
+  Logger.log("CP numbers found: " + JSON.stringify(cpNumbers));
   if (cpNumbers.length > 0) {
     var cpMessage = "PENDAFTARAN BARU SPMB SDIT INSAN RABBANI\n\nNo Registrasi: " + regNo + "\nNama: " + data.nama + "\nNama Ayah: " + data.namaAyah + "\nHP Ayah: " + data.hpAyah + "\nNama Ibu: " + data.namaIbu + "\nHP Ibu: " + data.hpIbu + "\nStatus: MENUNGGU\n\nSilakan cek data pendaftaran di dashboard admin.";
     for (var i = 0; i < cpNumbers.length; i++) {
+      Logger.log("Sending WhatsApp to CP " + (i+1) + ": " + cpNumbers[i]);
       sendWhatsAppMessage(cpNumbers[i], cpMessage);
     }
+  } else {
+    Logger.log("No CP numbers found");
   }
-  
+
   // Add mother's WhatsApp number to group
   if (data.hpIbu) {
+    Logger.log("Adding mother to group: " + data.hpIbu);
     addMotherToGroup(data.hpIbu);
+  } else {
+    Logger.log("No mother's WhatsApp number provided");
   }
-  
-  // Send Email notification
-  var emailTo = data.hpAyah || data.hpIbu; // Using WhatsApp number as placeholder - in real scenario, we'd have email field
-  // For now, we'll skip email if no email field exists in the form
-  // In a production system, you would add email fields to the form and use them here
-  // var emailTo = data.emailAyah || data.emailIbu;
-  // if (emailTo) {
-  //   var emailSubject = "Pendaftaran SPMB SDIT Insan Rabbani Berhasil";
-  //   var emailBody = "Yth. Bapak/Ibu " + data.namaAyah + ",\n\n" +
-  //                   "Pendaftaran anak Anda atas nama " + data.nama + " telah berhasil diterima.\n\n" +
-  //                   "No Registrasi: " + regNo + "\n" +
-  //                   "Nama: " + data.nama + "\n" +
-  //                   "Status: MENUNGGU\n\n" +
-  //                   "Silakan cek status pendaftaran secara berkala melalui halaman cek pendaftaran.\n\n" +
-  //                   "Terima kasih.\n" +
-  //                   "Tim SPMB SDIT Insan Rabbani";
-  //   sendEmailNotification(emailTo, emailSubject, emailBody);
-  // }
 
+  Logger.log("handleSubmit completed successfully");
   return regNo;
 }
 
@@ -610,29 +622,37 @@ function addMotherToGroup(hpIbu) {
 
 // Function to add all existing mother's WhatsApp numbers to group
 function addAllMothersToGroup() {
+  Logger.log("=== addAllMothersToGroup called ===");
+
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
   var rows = sheet.getDataRange().getValues();
   var numbers = [];
+
+  Logger.log("Processing " + (rows.length - 1) + " rows from Data_SPMB sheet");
 
   for (var i = 1; i < rows.length; i++) {
     var hpIbu = rows[i][19]; // HP Ibu column
     if (hpIbu) {
       var normalizedNumber = normalizeWhatsAppNumber(hpIbu.toString());
+      Logger.log("Row " + i + " - Original: " + hpIbu + ", Normalized: " + normalizedNumber);
       numbers.push(normalizedNumber);
+    } else {
+      Logger.log("Row " + i + " - No phone number found");
     }
   }
 
-  Logger.log("Found " + numbers.length + " phone numbers to add to group");
+  Logger.log("Found " + numbers.length + " phone numbers to add to group: " + JSON.stringify(numbers));
 
   if (numbers.length > 0) {
     // Get group ID for "SPMB 2026/2027"
+    Logger.log("Fetching WhatsApp groups...");
     var groups = getWhatsAppGroups();
     Logger.log("Groups response: " + JSON.stringify(groups));
 
     if (groups && groups.Status && groups.Data && groups.Data.groups) {
       Logger.log("Available groups:");
       for (var i = 0; i < groups.Data.groups.length; i++) {
-        Logger.log("Group: " + groups.Data.groups[i].name + " (ID: " + groups.Data.groups[i].id + ")");
+        Logger.log("Group " + (i+1) + ": " + groups.Data.groups[i].name + " (ID: " + groups.Data.groups[i].id + ", Participants: " + groups.Data.groups[i].participants + ")");
       }
 
       var spmbGroup = groups.Data.groups.find(function(g) {
@@ -640,36 +660,40 @@ function addAllMothersToGroup() {
       });
 
       if (spmbGroup) {
-        Logger.log("Found SPMB group with ID: " + spmbGroup.id);
+        Logger.log("Found SPMB group with ID: " + spmbGroup.id + ", trying to add " + numbers.length + " numbers");
         // Try using the full group ID string first, if it fails, try extracting numeric part
         var result = addNumbersToGroup(spmbGroup.id, numbers);
+        Logger.log("First attempt (full ID) result: " + JSON.stringify(result));
+
         if (!result || !result.Status) {
           Logger.log("Full group ID failed, trying numeric extraction");
           // Extract numeric part from group ID like "120363123456789012@g.us" -> 120363123456789012
           var numericId = spmbGroup.id.replace('@g.us', '').replace(/\D/g, '');
+          Logger.log("Extracted numeric ID: " + numericId);
           if (numericId) {
             result = addNumbersToGroup(parseInt(numericId), numbers);
+            Logger.log("Second attempt (numeric ID) result: " + JSON.stringify(result));
           }
         }
-        Logger.log("Add to group result: " + JSON.stringify(result));
+
         if (result && result.Status) {
           Logger.log("Successfully added " + numbers.length + " numbers to group");
           return { success: true, message: "Berhasil menambahkan " + numbers.length + " nomor ke group WhatsApp" };
         } else {
-          Logger.log("Failed to add numbers to group");
-          return { success: false, message: "Gagal menambahkan nomor ke group WhatsApp" };
+          Logger.log("Failed to add numbers to group - final result: " + JSON.stringify(result));
+          return { success: false, message: "Gagal menambahkan nomor ke group WhatsApp. Result: " + JSON.stringify(result) };
         }
       } else {
-        Logger.log("Group 'SPMB 2026/2027' not found");
-        return { success: false, message: "Group 'SPMB 2026/2027' tidak ditemukan. Pastikan group sudah dibuat di WhatsApp." };
+        Logger.log("Group 'SPMB 2026/2027' not found in available groups");
+        return { success: false, message: "Group 'SPMB 2026/2027' tidak ditemukan. Pastikan group sudah dibuat di WhatsApp dan device terhubung." };
       }
     } else {
-      Logger.log("Failed to get groups or no groups found");
-      return { success: false, message: "Gagal mendapatkan daftar group WhatsApp" };
+      Logger.log("Failed to get groups or no groups found. Groups object: " + JSON.stringify(groups));
+      return { success: false, message: "Gagal mendapatkan daftar group WhatsApp. Response: " + JSON.stringify(groups) };
     }
   } else {
     Logger.log("No phone numbers found to add");
-    return { success: false, message: "Tidak ada nomor telepon yang ditemukan" };
+    return { success: false, message: "Tidak ada nomor telepon yang ditemukan di database" };
   }
 }
 
