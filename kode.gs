@@ -735,13 +735,30 @@ function sendGroupInvitation(hpIbu, hpAyah, namaSiswa, noReg) {
     return;
   }
 
-  // Send invitation message
-  var message = "Selamat! Pendaftaran SPMB SDIT Insan Rabbani telah berhasil.\n\n" +
-                "Nama Siswa: " + namaSiswa + "\n" +
-                "No Registrasi: " + noReg + "\n\n" +
-                "Bergabunglah dengan Group WhatsApp SPMB 2026/2027 untuk mendapatkan informasi terbaru:\n" +
+  // Determine greeting based on recipient (mother vs father)
+  var greeting = "";
+  var isMother = (targetNumber === hpIbu && hpIbu);
+  if (isMother) {
+    greeting = "Assalamu'alaikum Bunda " + namaSiswa;
+  } else {
+    greeting = "Assalamu'alaikum Bapak " + namaSiswa;
+  }
+
+  // Send invitation message with beautiful formatting
+  var message = greeting + "\n\n" +
+                "✨ *SELAMAT!* ✨\n\n" +
+                "Pendaftaran SPMB SDIT Insan Rabbani telah *BERHASIL* diproses.\n\n" +
+                "📋 *Detail Pendaftaran:*\n" +
+                "• Nama Siswa: *" + namaSiswa + "*\n" +
+                "• No Registrasi: *" + noReg + "*\n\n" +
+                "📱 *Bergabunglah dengan Group WhatsApp Resmi SPMB 2026/2027*\n" +
+                "untuk mendapatkan informasi terbaru seputar pendaftaran.\n\n" +
+                "🔗 *Link Group:*\n" +
                 inviteLink + "\n\n" +
-                "Terima kasih atas kepercayaan Anda mendaftarkan putra/putri di SDIT Insan Rabbani.";
+                "💫 Terima kasih atas kepercayaan Anda mendaftarkan putra/putri tercinta di SDIT Insan Rabbani.\n\n" +
+                "Semoga proses pendaftaran berjalan lancar.\n\n" +
+                "_Salam hangat,_ \n" +
+                "*Tim SPMB SDIT Insan Rabbani*";
 
   var normalizedNumber = normalizeWhatsAppNumber(targetNumber);
   var result = sendWhatsAppMessage(normalizedNumber, message);
