@@ -250,6 +250,9 @@
 
   <script src="config.js"></script>
    <script>
+     // Memastikan API_URL terbaca dari config.js
+     const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
+
      // Language translations
      const translations = {
        id: {
@@ -453,7 +456,7 @@
 
     async function loadContent() {
       try {
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
+        const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getSettings" }) });
         const result = await res.json();
         const data = result.data;
         if (data.hero_text) document.getElementById('heroTitle').innerText = data.hero_text;
@@ -475,11 +478,15 @@
 
     async function loadCPContacts() {
       try {
-        const res = await fetch(CONFIG_API_URL, { method: "POST", body: JSON.stringify({ action: "getCPContacts" }) });
+        console.log('Loading CP contacts from:', URL_GAS);
+        const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "getCPContacts" }) });
+        console.log('CP contacts response status:', res.status);
         const result = await res.json();
+        console.log('CP contacts result:', result);
         const cpContainer = document.getElementById('cpContactContainer');
 
         if (result.success && result.data && result.data.length > 0) {
+          console.log('Found', result.data.length, 'CP contacts');
           let html = '';
           result.data.forEach(contact => {
             const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Halo%20' + encodeURIComponent(contact.name) + ',%20saya%20butuh%20bantuan%20pendaftaran%20SPMB';
@@ -500,6 +507,7 @@
           });
           cpContainer.innerHTML = html;
         } else {
+          console.log('No CP contacts found or API returned error');
           cpContainer.innerHTML = `
             <div class="col-12 text-center">
               <p class="text-muted">Contact Person sedang dimuat...</p>
@@ -507,7 +515,7 @@
           `;
         }
       } catch (e) {
-        console.log('Failed to load CP contacts');
+        console.log('Failed to load CP contacts:', e);
         const cpContainer = document.getElementById('cpContactContainer');
         cpContainer.innerHTML = `
           <div class="col-12 text-center">
