@@ -303,7 +303,7 @@
         formButtonContainer.style.display = 'none';
         manualConfirmationSection.style.display = 'none';
         
-        document.getElementById('transactionDate').textContent = new Date().toLocaleString();
+        document.getElementById('transactionDate').textContent = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
         document.getElementById('transactionName').textContent = 'Memproses...';
         document.getElementById('transactionAmount').textContent = 'Memproses...';
         document.getElementById('transactionStatus').textContent = 'Memproses...';
@@ -405,7 +405,7 @@
                 const result = await res.json();
                 if (result.success) {
                   document.getElementById('transactionName').textContent = name;
-                  document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString();
+                  document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString('id-ID');
                   document.getElementById('transactionStatus').textContent = 'Dikonfirmasi';
                   
                   // Show Drive link if available

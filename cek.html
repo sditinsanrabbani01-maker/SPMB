@@ -55,6 +55,7 @@
                     <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
                     <hr>
                     <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></p>
+                    <p><strong>Waktu Pendaftaran:</strong> ${new Date(d.timestamp).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</p>
                 </div>
             `;
         } else { h.innerHTML = `<div class="alert alert-danger">Data tidak ditemukan</div>`; }

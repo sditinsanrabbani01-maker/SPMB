@@ -269,9 +269,9 @@
             
             tb.innerHTML = data.map(p => `
                 <tr>
-                    <td>${new Date(p.timestamp).toLocaleString()}</td>
+                    <td>${new Date(p.timestamp).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
                     <td>${p.name}</td>
-                    <td>Rp ${parseInt(p.amount).toLocaleString()}</td>
+                    <td>Rp ${parseInt(p.amount).toLocaleString('id-ID')}</td>
                     <td><span class="badge bg-${p.status === 'confirmed' ? 'success' : 'secondary'}">${p.status}</span></td>
                     <td>${p.notes || '-'}</td>
                 </tr>
@@ -472,6 +472,7 @@
                 <p><strong>NPSN:</strong> ${d.npsn}</p>
                 <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
                 <p><strong>Status:</strong> ${d.status}</p>
+                <p><strong>Waktu Pendaftaran:</strong> ${new Date(d.timestamp).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</p>
             `;
             new bootstrap.Modal(document.getElementById('detailModal')).show();
         }
