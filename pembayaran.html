@@ -68,7 +68,8 @@
             <div class="alert alert-info" role="alert">
               <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Penting!</h6>
               <ul class="text-start mb-0">
-                <li>Sertakan nama siswa pada kolom berita transfer</li>
+                <li><strong>Isi nama siswa dengan lengkap</strong> pada kolom yang tersedia</li>
+                <li>Sertakan nama siswa pada kolom berita transfer (opsional)</li>
                 <li>Simpan bukti transfer untuk verifikasi</li>
                 <li>Registrasi akan diproses setelah pembayaran diterima</li>
                 <li>Pembayaran tidak dapat dikembalikan</li>
@@ -79,6 +80,14 @@
               <!-- Upload Section -->
              <div id="uploadSection">
                  <h6 class="text-muted mb-3">Upload Bukti Pembayaran untuk Verifikasi Otomatis:</h6>
+
+                 <!-- Student Name Input -->
+                 <div class="mb-3">
+                   <label for="namaSiswa" class="form-label fw-bold">Nama Siswa <span class="text-danger">*</span></label>
+                   <input type="text" id="namaSiswa" class="form-control" placeholder="Masukkan nama siswa yang didaftarkan" required>
+                   <div class="form-text">Pastikan nama siswa sesuai dengan yang didaftarkan di formulir pendaftaran</div>
+                 </div>
+
                  <div class="mb-3">
                    <input type="file" id="buktiPembayaran" class="form-control" accept="image/*">
                  </div>
@@ -267,13 +276,22 @@
 
       async function processPayment() {
         const fileInput = document.getElementById('buktiPembayaran');
+        const namaSiswaInput = document.getElementById('namaSiswa');
         const statusDiv = document.getElementById('statusDiv');
         const btn = document.getElementById('btnProcess');
         const uploadSection = document.getElementById('uploadSection');
         const transactionSection = document.getElementById('transactionSection');
         const formButtonContainer = document.getElementById('formButtonContainer');
         const manualConfirmationSection = document.getElementById('manualConfirmationSection');
-        
+
+        // Validate student name input
+        const namaSiswa = namaSiswaInput.value.trim();
+        if (!namaSiswa) {
+          showErrorPopup('Nama siswa harus diisi.');
+          namaSiswaInput.focus();
+          return;
+        }
+
         if (!fileInput.files[0]) {
           showErrorPopup('Pilih file gambar terlebih dahulu.');
           return;
@@ -325,7 +343,7 @@
           }
           console.log('Final amount:', amount);
 
-          // Parse name (look for sender name patterns)
+          // Extract sender name from OCR for verification (optional)
           const namePatterns = [
             /Nama Pengirim\s*([^\n]+)/i,
             /Sumber Dana\s*([^\n]+)/i,
@@ -334,21 +352,22 @@
             /Nama\s*:\s*([^\n]+)/i,
             /Atas Nama\s*:\s*([^\n]+)/i
           ];
-          let name = 'Unknown';
+          let extractedName = '';
           for (const pattern of namePatterns) {
             const match = text.match(pattern);
             if (match) {
-              name = match[1].trim();
+              extractedName = match[1].trim();
               // Remove any leading numbers or special characters
-              name = name.replace(/^[\d\s\-\@\/]+/, '').trim();
+              extractedName = extractedName.replace(/^[\d\s\-\@\/]+/, '').trim();
               // Take only the first line if multiline
-              name = name.split('\n')[0].trim();
+              extractedName = extractedName.split('\n')[0].trim();
               // Remove common suffixes like "SPMB SD IT INSAN RABBANI"
-              name = name.replace(/\s*SPMB\s*SD\s*IT\s*INSAN\s*RABBANI.*$/i, '').trim();
+              extractedName = extractedName.replace(/\s*SPMB\s*SD\s*IT\s*INSAN\s*RABBANI.*$/i, '').trim();
               break;
             }
           }
-          console.log('Parsed name:', name);
+          console.log('OCR extracted name:', extractedName);
+          console.log('Using manual student name:', namaSiswa);
 
           // Parse notes/comments from payment confirmation
           const notePatterns = [
@@ -367,6 +386,12 @@
               break;
             }
           }
+
+          // Add extracted name to notes for verification if different from manual input
+          if (extractedName && extractedName !== namaSiswa && extractedName !== 'Unknown') {
+            notes = (notes ? notes + ' | ' : '') + 'Nama dari bukti: ' + extractedName;
+          }
+
           console.log('Parsed notes:', notes);
 
           if (amount >= 100000) {
@@ -376,7 +401,7 @@
               try {
                 const base64 = e.target.result.split(',')[1];
                 // Save to GAS with image
-                const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: name, status: "confirmed", image: base64, filename: fileInput.files[0].name, notes: notes }) });
+                const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: namaSiswa, status: "confirmed", image: base64, filename: fileInput.files[0].name, notes: notes }) });
                 const result = await res.json();
                 if (result.success) {
                   document.getElementById('transactionName').textContent = name;
@@ -397,7 +422,7 @@
                   document.getElementById('transactionStatus').textContent = 'Gagal disimpan';
                   showErrorPopup('Gagal menyimpan data pembayaran.');
                   // Show manual confirmation option
-                  showManualConfirmation(name);
+                  showManualConfirmation(namaSiswa);
                 }
               } finally {
                 btn.disabled = false;
@@ -410,7 +435,7 @@
               showErrorPopup('Gagal membaca file gambar.');
               btn.disabled = false;
               // Show manual confirmation option
-              showManualConfirmation(name);
+              showManualConfirmation(namaSiswa);
             };
             reader.readAsDataURL(fileInput.files[0]);
           } else {
@@ -420,7 +445,7 @@
             showErrorPopup('Jumlah pembayaran tidak mencukupi (minimal Rp 100.000).');
             btn.disabled = false;
             // Show manual confirmation option
-            showManualConfirmation(name);
+            showManualConfirmation(namaSiswa);
           }
         } catch (error) {
           console.error(error);
@@ -430,7 +455,7 @@
           showErrorPopup('Gagal memproses gambar: ' + error.message);
           btn.disabled = false;
           // Show manual confirmation option
-          showManualConfirmation('Unknown');
+          showManualConfirmation(namaSiswa);
         }
       }
       
@@ -446,7 +471,7 @@
           if (result.success && result.data && result.data.length > 0) {
             let contactHtml = '<p class="mb-2"><strong>Hubungi salah satu CP berikut:</strong></p>';
             result.data.forEach(contact => {
-              const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Konfirmasi%20Pembayaran%20SPMB%20atas%20nama%20' + encodeURIComponent(name);
+              const waLink = 'https://wa.me/' + contact.phone.replace(/^0/, '62') + '?text=Konfirmasi%20Pembayaran%20SPMB%20atas%20nama%20' + encodeURIComponent(namaSiswa);
               contactHtml += '<div class="mb-2">';
               contactHtml += '<a href="' + waLink + '" target="_blank" class="btn btn-success btn-sm me-2"><i class="fab fa-whatsapp me-1"></i>' + contact.name + ' - ' + contact.phone + '</a>';
               contactHtml += '</div>';
