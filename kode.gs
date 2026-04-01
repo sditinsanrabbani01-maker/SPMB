@@ -541,7 +541,22 @@ function getWhatsAppGroups() {
     if (responseCode === 200) {
       var result = JSON.parse(responseText);
       Logger.log("Groups parsed successfully: " + JSON.stringify(result));
-      return result;
+
+      // Normalize the response to match expected format
+      // API returns: {"success":true,"data":{"groups":[...]},"message":"Success"}
+      // We need: {"Status":true,"Data":{"groups":[...]},"Message":"Success"}
+      if (result.success) {
+        return {
+          Status: true,
+          Data: result.data,
+          Message: result.message || "Success"
+        };
+      } else {
+        return {
+          Status: false,
+          Message: result.message || "API returned success=false"
+        };
+      }
     } else {
       Logger.log("API returned error code: " + responseCode + ", response: " + responseText);
       return { Status: false, Message: "API Error: " + responseCode + " - " + responseText };
@@ -578,7 +593,16 @@ function addNumbersToGroup(groupId, numbers) {
     if (responseCode === 200) {
       var result = JSON.parse(responseText);
       Logger.log("Add to group result parsed: " + JSON.stringify(result));
-      return result;
+
+      // Normalize response format
+      if (result.success !== undefined) {
+        return {
+          Status: result.success,
+          Message: result.message || "Success"
+        };
+      } else {
+        return result; // Return as-is if already in expected format
+      }
     } else {
       Logger.log("Add to group API error: " + responseCode + " - " + responseText);
       return { Status: false, Message: "API Error: " + responseCode + " - " + responseText };
@@ -749,12 +773,14 @@ function testCheckSPMBGroup() {
   Logger.log("=== Testing SPMB Group Check ===");
   var groups = getWhatsAppGroups();
 
+  Logger.log("Groups response: " + JSON.stringify(groups));
+
   if (groups && groups.Status && groups.Data && groups.Data.groups) {
     Logger.log("Available groups:");
     var spmbFound = false;
     for (var i = 0; i < groups.Data.groups.length; i++) {
       var group = groups.Data.groups[i];
-      Logger.log("Group: " + group.name + " (ID: " + group.id + ")");
+      Logger.log("Group " + (i+1) + ": " + group.name + " (ID: " + group.id + ", Participants: " + (group.participants || "N/A") + ")");
 
       if (group.name === "SPMB 2026/2027") {
         spmbFound = true;
@@ -767,7 +793,7 @@ function testCheckSPMBGroup() {
       Logger.log("Please create the group in WhatsApp first.");
     }
   } else {
-    Logger.log("✗ Failed to get groups: " + JSON.stringify(groups));
+    Logger.log("✗ Failed to get groups or invalid response format: " + JSON.stringify(groups));
   }
 
   return groups;
