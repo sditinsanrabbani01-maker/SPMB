@@ -146,8 +146,42 @@
             <button onclick="exportCSV()" class="btn btn-success">Export CSV</button>
         </div>
     </div>
+
+    <!-- Bulk Actions Section -->
+    <div class="card mb-3" id="bulkActionsCard" style="display: none;">
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-3">
+                <span id="selectedCount" class="fw-bold text-primary">0 pendaftar dipilih</span>
+                <select id="bulkActionSelect" class="form-select w-auto">
+                    <option value="">Pilih Aksi...</option>
+                    <option value="lulus">Set Status LULUS</option>
+                    <option value="tolak">Set Status TOLAK</option>
+                    <option value="ulang">Set Status ULANG</option>
+                    <option value="menunggu">Set Status MENUNGGU</option>
+                </select>
+                <button onclick="executeBulkAction()" class="btn btn-primary" id="bulkExecuteBtn" disabled>
+                    <i class="fas fa-play me-1"></i>Eksekusi
+                </button>
+                <button onclick="clearSelection()" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
     <table class="table table-bordered">
-        <thead class="table-dark"><tr><th>No Reg</th><th>Nama</th><th>WhatsApp</th><th>Status</th><th>Aksi</th></tr></thead>
+        <thead class="table-dark">
+            <tr>
+                <th style="width: 50px;">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                </th>
+                <th>No Reg</th>
+                <th>Nama</th>
+                <th>WhatsApp</th>
+                <th>Status</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
         <tbody id="tBody"></tbody>
     </table>
 </div>
@@ -209,6 +243,9 @@
             const tb = document.getElementById('tBody');
             tb.innerHTML = data.map(d => `
                 <tr>
+                    <td>
+                        <input type="checkbox" class="row-checkbox" value="${d.noReg}" onchange="updateBulkSelection()">
+                    </td>
                     <td>${d.noReg}</td>
                     <td>${d.nama}</td>
                     <td>${d.hp}</td>
@@ -272,20 +309,132 @@
             const filtered = allData.filter(d => d.noReg.toLowerCase().includes(query) || d.nama.toLowerCase().includes(query));
             updateStats(filtered);
             renderTable(filtered);
+            updateBulkSelection(); // Update bulk selection after filtering
+        }
+
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+            updateBulkSelection();
+        }
+
+        function updateBulkSelection() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            const selectedCount = checkboxes.length;
+            const bulkCard = document.getElementById('bulkActionsCard');
+            const selectedCountEl = document.getElementById('selectedCount');
+            const bulkExecuteBtn = document.getElementById('bulkExecuteBtn');
+
+            if (selectedCount > 0) {
+                bulkCard.style.display = 'block';
+                selectedCountEl.textContent = `${selectedCount} pendaftar dipilih`;
+                bulkExecuteBtn.disabled = false;
+            } else {
+                bulkCard.style.display = 'none';
+                bulkExecuteBtn.disabled = true;
+            }
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.row-checkbox, #selectAll');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateBulkSelection();
+        }
+
+        async function executeBulkAction() {
+            const action = document.getElementById('bulkActionSelect').value;
+            if (!action) {
+                alert('Pilih aksi yang ingin dilakukan!');
+                return;
+            }
+
+            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('Pilih minimal satu pendaftar!');
+                return;
+            }
+
+            const selectedNoRegs = Array.from(selectedCheckboxes).map(cb => cb.value);
+            const statusMap = {
+                'lulus': 'LULUS',
+                'tolak': 'TOLAK',
+                'ulang': 'ULANG',
+                'menunggu': 'MENUNGGU'
+            };
+
+            const status = statusMap[action];
+            if (!confirm(`Apakah Anda yakin ingin mengubah status ${selectedNoRegs.length} pendaftar menjadi "${status}"?\n\nPendaftar yang dipilih:\n${selectedNoRegs.join('\n')}`)) {
+                return;
+            }
+
+            // Show loading
+            const bulkExecuteBtn = document.getElementById('bulkExecuteBtn');
+            const originalText = bulkExecuteBtn.innerHTML;
+            bulkExecuteBtn.disabled = true;
+            bulkExecuteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memproses...';
+
+            try {
+                const res = await fetch(CONFIG_API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "bulkUpdateStatus",
+                        noRegs: selectedNoRegs,
+                        status: status
+                    })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    alert(`Bulk action berhasil!\n\n${result.message}\n\nStatus ${selectedNoRegs.length} pendaftar telah diubah menjadi "${status}".`);
+                } else {
+                    alert('Bulk action gagal: ' + (result.message || 'Terjadi kesalahan tidak dikenal.'));
+                }
+
+                // Clear selection and reload data
+                clearSelection();
+                loadData();
+
+            } catch (error) {
+                console.error('Bulk action error:', error);
+                alert('Terjadi kesalahan saat memproses bulk action: ' + error.message);
+            } finally {
+                bulkExecuteBtn.disabled = false;
+                bulkExecuteBtn.innerHTML = originalText;
+            }
         }
         
         document.getElementById('searchInput').addEventListener('input', filterData);
         
         function exportCSV() {
+            // Check if any items are selected for export
+            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+            let dataToExport = allData;
+
+            if (selectedCheckboxes.length > 0) {
+                // Export only selected items
+                const selectedNoRegs = Array.from(selectedCheckboxes).map(cb => cb.value);
+                dataToExport = allData.filter(d => selectedNoRegs.includes(d.noReg));
+
+                if (!confirm(`Export ${selectedCheckboxes.length} pendaftar yang dipilih?`)) {
+                    return;
+                }
+            } else {
+                // Export all data
+                if (!confirm('Export semua data pendaftar?')) {
+                    return;
+                }
+            }
+
             let csv = 'No Reg,Nama,WhatsApp,Status\n';
-            allData.forEach(d => {
+            dataToExport.forEach(d => {
                 csv += `${d.noReg},${d.nama},${d.hp},${d.status}\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'data_pendaftar.csv';
+            a.download = selectedCheckboxes.length > 0 ? 'data_pendaftar_terpilih.csv' : 'data_pendaftar.csv';
             a.click();
         }
         

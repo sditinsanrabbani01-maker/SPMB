@@ -102,6 +102,16 @@ function doPost(e) {
        return createResponse(result);
      }
 
+     // 15. Aksi Bulk Update Status
+     if (action === "bulkUpdateStatus") {
+       Logger.log("Processing bulkUpdateStatus action");
+       var noRegs = requestData.noRegs;
+       var status = requestData.status;
+       var result = bulkUpdateStatus(noRegs, status);
+       Logger.log("bulkUpdateStatus result: " + JSON.stringify(result));
+       return createResponse(result);
+     }
+
     Logger.log("Unknown action: " + action);
     return createResponse({ success: false, message: "Aksi tidak dikenal!" });
   } catch (error) {
@@ -680,6 +690,91 @@ function getGroupInviteLink() {
     Logger.log("Error getting group invite link: " + e.toString());
     return null;
   }
+}
+
+// Function to bulk update status for multiple registrants
+function bulkUpdateStatus(noRegs, status) {
+  Logger.log("=== bulkUpdateStatus called ===");
+  Logger.log("NoRegs: " + JSON.stringify(noRegs));
+  Logger.log("Status: " + status);
+
+  if (!noRegs || !Array.isArray(noRegs) || noRegs.length === 0) {
+    return { success: false, message: "No registrants selected" };
+  }
+
+  if (!status) {
+    return { success: false, message: "Status not specified" };
+  }
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+  var rows = sheet.getDataRange().getValues();
+  var updatedCount = 0;
+  var notificationCount = 0;
+
+  Logger.log("Processing bulk update for " + noRegs.length + " registrants");
+
+  for (var i = 0; i < noRegs.length; i++) {
+    var targetNoReg = noRegs[i];
+
+    // Find and update the registrant
+    for (var j = 1; j < rows.length; j++) {
+      if (rows[j][1] === targetNoReg) { // No Registrasi column
+        var oldStatus = rows[j][23]; // Status column
+        var namaSiswa = rows[j][2]; // Nama column
+
+        // Update status in sheet
+        sheet.getRange(j + 1, 24).setValue(status); // Status column (index 23, so range is 24)
+        updatedCount++;
+
+        Logger.log("Updated " + namaSiswa + " (" + targetNoReg + ") from " + oldStatus + " to " + status);
+
+        // Send WhatsApp notification if status changed
+        if (oldStatus !== status) {
+          try {
+            // Send to registrant/parent
+            var whatsappNumber = getCPContactNumber(targetNoReg);
+            var message = "Status pendaftaran Anda telah berubah.\n\nNo Registrasi: " + targetNoReg + "\nNama: " + namaSiswa + "\nStatus Sebelumnya: " + oldStatus + "\nStatus Baru: " + status + "\n\nSilakan cek status pendaftaran secara berkala.";
+
+            if (whatsappNumber) {
+              Logger.log("Sending notification to CP: " + whatsappNumber);
+              sendWhatsAppMessage(whatsappNumber, message);
+              notificationCount++;
+            } else {
+              // Fallback to parent's phone number
+              var fallbackNumber = rows[j][14] || rows[j][19]; // HP Ayah or Ibu
+              if (fallbackNumber) {
+                Logger.log("Sending notification to parent: " + fallbackNumber);
+                sendWhatsAppMessage(fallbackNumber, message);
+                notificationCount++;
+              }
+            }
+
+            // Send to CP/Contact Person
+            var cpNumbers = getCPContactNumbers();
+            if (cpNumbers.length > 0) {
+              var cpMessage = "PERUBAHAN STATUS PENDAFTARAN SPMB SDIT INSAN RABBANI\n\nNo Registrasi: " + targetNoReg + "\nNama: " + namaSiswa + "\nStatus Sebelumnya: " + oldStatus + "\nStatus Baru: " + status + "\n\nSilakan cek data pendaftaran di dashboard admin.";
+              for (var k = 0; k < cpNumbers.length; k++) {
+                Logger.log("Sending notification to CP list: " + cpNumbers[k]);
+                sendWhatsAppMessage(cpNumbers[k], cpMessage);
+              }
+            }
+          } catch (notificationError) {
+            Logger.log("Failed to send notification for " + targetNoReg + ": " + notificationError.toString());
+          }
+        }
+
+        break; // Found the registrant, move to next one
+      }
+    }
+  }
+
+  Logger.log("Bulk update completed. Updated: " + updatedCount + ", Notifications sent: " + notificationCount);
+
+  return {
+    success: true,
+    message: "Berhasil mengupdate status " + updatedCount + " pendaftar" +
+             (notificationCount > 0 ? ". Notifikasi WhatsApp dikirim ke " + notificationCount + " penerima." : ".")
+  };
 }
 
 // Function to send group invitations to all existing registrants
