@@ -16,6 +16,7 @@
     .card-payment { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
     .bank-info { background: #f8f9fa; border-radius: 15px; padding: 20px; margin: 20px 0; }
     .btn-payment { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-weight: bold; }
+    #formButton:disabled { opacity: 0.6; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -136,10 +137,16 @@
                     <div class="col-md-9" id="driveLink"></div>
                   </div>
                 </div>
-                <div class="mt-4" id="formButtonContainer" style="display: none;">
-                  <a href="form.html" class="btn btn-success btn-lg px-5">
+                <div class="mt-4">
+                  <button id="formButton" class="btn btn-success btn-lg px-5" disabled onclick="goToForm()">
                     <i class="fas fa-arrow-right me-2"></i>Lanjutkan ke Formulir Pendaftaran
-                  </a>
+                  </button>
+                  <div id="formButtonLoader" class="mt-2 d-none">
+                    <small class="text-muted">
+                      <i class="fas fa-spinner fa-spin me-1"></i>
+                      Memproses pembayaran... Mohon tunggu sebentar
+                    </small>
+                  </div>
                 </div>
                 <!-- Manual Confirmation Section (shown when auto confirmation fails) -->
                 <div id="manualConfirmationSection" class="mt-4" style="display: none;">
@@ -171,6 +178,11 @@
   <script>
     // Memastikan API_URL terbaca dari config.js
     const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
+
+    // Initialize button states
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('formButton').disabled = true;
+    });
 
     function showLoadingPopup(message) {
       const popup = document.createElement('div');
@@ -281,7 +293,8 @@
         const btn = document.getElementById('btnProcess');
         const uploadSection = document.getElementById('uploadSection');
         const transactionSection = document.getElementById('transactionSection');
-        const formButtonContainer = document.getElementById('formButtonContainer');
+        const formButton = document.getElementById('formButton');
+        const formButtonLoader = document.getElementById('formButtonLoader');
         const manualConfirmationSection = document.getElementById('manualConfirmationSection');
 
         // Validate student name input
@@ -300,7 +313,8 @@
         btn.disabled = true;
         uploadSection.classList.add('d-none');
         transactionSection.classList.remove('d-none');
-        formButtonContainer.style.display = 'none';
+        formButton.disabled = true;
+        formButtonLoader.classList.remove('d-none');
         manualConfirmationSection.style.display = 'none';
         
         document.getElementById('transactionDate').textContent = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -415,18 +429,22 @@
                   }
                   
                   // Enable form button after successful payment
-                  formButtonContainer.style.display = 'block';
+                  formButton.disabled = false;
+                  formButtonLoader.classList.add('d-none');
                 } else {
                   document.getElementById('transactionName').textContent = 'Gagal';
                   document.getElementById('transactionAmount').textContent = '-';
                   document.getElementById('transactionStatus').textContent = 'Gagal disimpan';
+                  formButton.disabled = true; // Keep button disabled on failure
                   showErrorPopup('Gagal menyimpan data pembayaran.');
                   // Show manual confirmation option
                   showManualConfirmation(namaSiswa);
                 }
-              } finally {
-                btn.disabled = false;
-              }
+        } finally {
+          btn.disabled = false;
+          // Hide loader regardless of success/failure
+          formButtonLoader.classList.add('d-none');
+        }
             };
             reader.onerror = function() {
               document.getElementById('transactionName').textContent = 'Error';
@@ -485,6 +503,11 @@
         }
         
         manualConfirmationSection.style.display = 'block';
+      }
+
+      function goToForm() {
+        // Navigate to form page
+        window.location.href = 'form.html';
       }
   </script>
 
