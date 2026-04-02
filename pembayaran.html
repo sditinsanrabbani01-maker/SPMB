@@ -72,7 +72,9 @@
                 <li><strong>Pastikan transfer ke rekening yang benar:</strong> <code>7459990020230478</code> a.n. <strong>SPMB SD IT INSAN RABBANI</strong></li>
                 <li><strong>Isi nama siswa dengan lengkap dan benar</strong> pada kolom yang tersedia</li>
                 <li>Sertakan nama siswa pada kolom berita transfer untuk memudahkan verifikasi</li>
-                <li>Sistem akan <strong>secara otomatis memverifikasi rekening</strong> dan mencocokkan nama</li>
+                <li>Sistem akan <strong>secara otomatis memverifikasi rekening</strong> berdasarkan <strong>nomor rekening</strong> atau <strong>nama rekening</strong> yang terlihat</li>
+                <li>Jika nomor rekening disembunyikan, pastikan <strong>nama rekening "SPMB SD IT INSAN RABBANI"</strong> terlihat jelas</li>
+                <li>Sistem akan mencocokkan nama siswa yang Anda input dengan nama di bukti transfer</li>
                 <li>Simpan bukti transfer untuk verifikasi manual jika diperlukan</li>
                 <li>Registrasi akan diproses setelah pembayaran dikonfirmasi</li>
                 <li>Pembayaran tidak dapat dikembalikan</li>
@@ -337,16 +339,28 @@
           const { data: { text } } = await Tesseract.recognize(fileInput.files[0], 'ind');
           console.log('Extracted text:', text);
 
-          // Verify target account number
+          // Verify target account (number OR name)
           const targetAccount = '7459990020230478';
+          const targetAccountName = 'SPMB SD IT INSAN RABBANI';
+          const accountNameVariations = [
+            /SPMB\s+SD\s+IT\s+INSAN\s+RABBANI/i,
+            /SPMB\s+SDIT\s+INSAN\s+RABBANI/i,
+            /SD\s+IT\s+INSAN\s+RABBANI/i,
+            /SDIT\s+INSAN\s+RABBANI/i,
+            /INSAN\s+RABBANI/i,
+            /SPMB\s+RABBANI/i
+          ];
+
+          let accountFound = false;
+          let foundAccountNumber = '';
+          let accountVerificationMethod = '';
+
+          // First, try to find account number
           const accountPatterns = [
             /(\d{3,4}[\d\s\-]*7459990020230478)/, // Look for account patterns containing our target
             /7459990020230478/, // Direct match
             /(\d{3,4}[\d\s\-]*\d{10,})/g // General account number patterns
           ];
-
-          let accountFound = false;
-          let foundAccountNumber = '';
 
           for (const pattern of accountPatterns) {
             const matches = text.match(pattern);
@@ -356,11 +370,27 @@
                 if (cleanMatch.includes(targetAccount)) {
                   accountFound = true;
                   foundAccountNumber = targetAccount;
-                  console.log('Target account found:', foundAccountNumber);
+                  accountVerificationMethod = 'account_number';
+                  console.log('Target account found by number:', foundAccountNumber);
+                  console.log('Account verification method:', accountVerificationMethod);
                   break;
                 }
               }
               if (accountFound) break;
+            }
+          }
+
+          // If account number not found, try account name
+          if (!accountFound) {
+            for (const pattern of accountNameVariations) {
+              if (pattern.test(text)) {
+                accountFound = true;
+                foundAccountNumber = targetAccount; // Use target account for consistency
+                accountVerificationMethod = 'account_name';
+                console.log('Target account found by name:', text.match(pattern)[0]);
+                console.log('Account verification method:', accountVerificationMethod);
+                break;
+              }
             }
           }
 
@@ -376,7 +406,7 @@
               <span class="badge bg-secondary">Nama: -</span>
             `;
 
-            showErrorPopup(`Bukti pembayaran tidak untuk rekening SPMB SDIT Insan Rabbani.\n\nNomor rekening yang benar: 7459990020230478\nAtas nama: SPMB SD IT INSAN RABBANI\n\nPastikan Anda transfer ke rekening yang benar.`);
+            showErrorPopup(`Bukti pembayaran tidak dapat diverifikasi.\n\nSistem mencari:\n• Nomor rekening: 7459990020230478\n• Atau nama rekening: SPMB SD IT INSAN RABBANI\n\nPastikan bukti transfer menunjukkan salah satu dari informasi tersebut. Jika rekening disembunyikan, pastikan nama rekening terlihat jelas.`);
             btn.disabled = false;
             formButtonLoader.classList.add('d-none');
             return;
@@ -537,7 +567,7 @@
 
           // Add verification details to notes
           let verificationNotes = [];
-          verificationNotes.push(`Rekening valid: ${foundAccountNumber}`);
+          verificationNotes.push(`Verifikasi rekening: ${accountVerificationMethod === 'account_name' ? 'nama rekening' : 'nomor rekening'} (${foundAccountNumber})`);
           verificationNotes.push(`Nama cocok: ${nameMatchConfidence}`);
 
           if (extractedName) {
@@ -573,9 +603,15 @@
                 if (result.success) {
                   document.getElementById('transactionName').textContent = namaSiswa;
                   document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString('id-ID');
-                  document.getElementById('transactionStatus').textContent = `Dikonfirmasi ✓ (Rek: ${foundAccountNumber})`;
+                  const verificationText = accountVerificationMethod === 'account_name' ?
+                    `Dikonfirmasi ✓ (Nama Rekening)` : `Dikonfirmasi ✓ (Rek: ${foundAccountNumber})`;
+                  document.getElementById('transactionStatus').textContent = verificationText;
 
                   // Update validation badges
+                  const validationInfo = document.getElementById('validationInfo');
+                  const methodText = accountVerificationMethod === 'account_name' ?
+                    '✓ Nama Rekening' : '✓ Nomor Rekening';
+
                   const nameMatchBadge = document.getElementById('nameMatchBadge');
                   if (nameMatchConfidence === 'exact') {
                     nameMatchBadge.className = 'badge bg-success';
@@ -587,6 +623,12 @@
                     nameMatchBadge.className = 'badge bg-danger';
                     nameMatchBadge.textContent = '✗ Nama Tidak Cocok';
                   }
+
+                  // Update the account validation badge
+                  validationInfo.innerHTML = `
+                    <span class="badge bg-success">${methodText}</span>
+                    ${nameMatchBadge.outerHTML}
+                  `;
                   
                   // Show Drive link if available
                   if (result.driveLink) {
