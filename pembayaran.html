@@ -71,13 +71,14 @@
               <ul class="text-start mb-0">
                 <li><strong>Pastikan transfer ke rekening yang benar:</strong> <code>7459990020230478</code> a.n. <strong>SPMB SD IT INSAN RABBANI</strong></li>
                 <li><strong>Isi nama siswa dengan lengkap</strong> pada kolom yang tersedia (untuk referensi)</li>
-                <li>Sistem akan <strong>secara otomatis memverifikasi rekening</strong> - cukup salah satu saja yang terlihat:</li>
-                <ul>
-                  <li>✅ <strong>Nomor rekening:</strong> 7459990020230478</li>
-                  <li>✅ <strong>Nama rekening:</strong> SPMB SD IT INSAN RABBANI (atau variasinya)</li>
-                </ul>
-                <li>Jika rekening disembunyikan, sistem akan mencari nama rekening dengan fleksibel</li>
-                <li><strong>Kecocokan nama siswa tidak wajib</strong> - yang penting rekening SPMB terdeteksi</li>
+                <li>Sistem akan <strong>secara otomatis memverifikasi rekening</strong> dengan prioritas:</li>
+                <ol>
+                  <li>✅ <strong>Prioritas 1:</strong> Nomor rekening 7459990020230478 (langsung valid)</li>
+                  <li>✅ <strong>Prioritas 2:</strong> Nama rekening SPMB (jika nomor rekening tidak terlihat)</li>
+                </ol>
+                <li>Jika <strong>nomor rekening terlihat</strong>, langsung dikonfirmasi tanpa validasi nama</li>
+                <li>Jika <strong>nomor rekening tidak terlihat</strong>, sistem mencari nama rekening SPMB</li>
+                <li><strong>Kecocokan nama siswa tidak diperlukan</strong> - cukup rekening SPMB terdeteksi</li>
                 <li>Simpan bukti transfer untuk verifikasi manual jika diperlukan</li>
                 <li>Registrasi akan diproses setelah pembayaran dikonfirmasi</li>
                 <li>Pembayaran tidak dapat dikembalikan</li>
@@ -401,8 +402,14 @@
             }
           }
 
-          // If account number not found, try account name variations (case-insensitive, flexible)
+          // LOGIC: Jika nomor rekening valid → langsung sukses
+          //         Jika nomor rekening tidak valid → cek nama rekening SPMB
+
+          // Jika nomor rekening SUDAH ditemukan, langsung lanjut (tanpa validasi nama)
           if (!accountFound) {
+            console.log('Account number not found, checking account name...');
+
+            // Jika nomor rekening tidak ditemukan, cek nama rekening SPMB
             const textLower = text.toLowerCase();
 
             // Check for SPMB variations (very flexible)
@@ -423,26 +430,14 @@
               if (textLower.includes(variation)) {
                 accountFound = true;
                 foundAccountNumber = targetAccount; // Use target account for consistency
-                accountVerificationMethod = 'account_name_flexible';
-                console.log('Target account found by flexible name matching:', variation);
+                accountVerificationMethod = 'account_name_only';
+                console.log('Target account found by name (fallback):', variation);
                 console.log('Account verification method:', accountVerificationMethod);
                 break;
               }
             }
-
-            // If still not found, try the original regex patterns as fallback
-            if (!accountFound) {
-              for (const pattern of accountNameVariations) {
-                if (pattern.test(text)) {
-                  accountFound = true;
-                  foundAccountNumber = targetAccount;
-                  accountVerificationMethod = 'account_name';
-                  console.log('Target account found by regex name:', text.match(pattern)[0]);
-                  console.log('Account verification method:', accountVerificationMethod);
-                  break;
-                }
-              }
-            }
+          } else {
+            console.log('Account number found, skipping name validation');
           }
 
           if (!accountFound) {
@@ -457,7 +452,7 @@
               <span class="badge bg-secondary">Nama: -</span>
             `;
 
-            showErrorPopup(`Bukti pembayaran tidak dapat diverifikasi.\n\nSistem mencari:\n• Nomor rekening: 7459990020230478\n• Atau nama rekening: SPMB SD IT INSAN RABBANI\n\nPastikan bukti transfer menunjukkan salah satu dari informasi tersebut. Jika rekening disembunyikan, pastikan nama rekening terlihat jelas.`);
+            showErrorPopup(`Bukti pembayaran tidak dapat diverifikasi.\n\nSistem memverifikasi dengan prioritas:\n1️⃣ Nomor rekening: 7459990020230478\n2️⃣ Nama rekening: SPMB SD IT INSAN RABBANI (jika nomor tidak terlihat)\n\nPastikan bukti transfer menunjukkan salah satu dari informasi tersebut.`);
             btn.disabled = false;
             formButtonLoader.classList.add('d-none');
             return;
@@ -645,12 +640,18 @@
             console.log('Best extracted name match:', extractedName, 'Score:', bestScore);
           }
           console.log('=== VERIFICATION SUMMARY ===');
+          console.log('🔍 VERIFICATION LOGIC:');
+          console.log('1. Check account number first...');
+          console.log('Account number found:', accountVerificationMethod === 'account_number');
+          if (!accountFound) {
+            console.log('2. Account number not found, checking account name...');
+            console.log('Account name found:', accountVerificationMethod === 'account_name_only');
+          }
+          console.log('✅ Final result:', accountFound ? 'SUCCESS' : 'FAILED');
           console.log('Account verification method:', accountVerificationMethod);
-          console.log('Account found:', accountFound, 'Number:', foundAccountNumber);
-          console.log('Manual student name input:', namaSiswa);
-          console.log('Extracted sender names from OCR:', extractedNames);
-          console.log('Selected best match:', extractedName);
-          console.log('Match confidence level:', nameMatchConfidence, '(OPTIONAL)');
+          console.log('Account number used:', foundAccountNumber);
+          console.log('Manual student name input:', namaSiswa, '(NOT REQUIRED)');
+          console.log('Extracted sender names from OCR:', extractedNames, '(FOR REFERENCE ONLY)');
           console.log('==============================');
 
           // Optional name matching - not critical for success
@@ -749,29 +750,28 @@
                   const validationInfo = document.getElementById('validationInfo');
                   let methodText = '✓ Rekening Valid';
 
-                  if (accountVerificationMethod === 'account_name_flexible') {
-                    methodText = '✓ Nama Rekening (Fleksibel)';
-                  } else if (accountVerificationMethod === 'account_name') {
+                  if (accountVerificationMethod === 'account_name_only') {
                     methodText = '✓ Nama Rekening';
                   } else if (accountVerificationMethod === 'account_number') {
                     methodText = '✓ Nomor Rekening';
                   }
 
-                  // Name validation is now optional
-                  let nameBadgeText = 'Nama: Opsional';
-                  let nameBadgeClass = 'badge bg-info';
+                  // Name validation depends on account verification method
+                  let nameBadgeText = 'Nama: Tidak Diperlukan';
+                  let nameBadgeClass = 'badge bg-light';
 
-                  if (extractedName) {
-                    if (nameMatchConfidence === 'exact') {
-                      nameBadgeText = '✓ Nama Cocok';
-                      nameBadgeClass = 'badge bg-success';
-                    } else if (nameMatchConfidence === 'partial') {
-                      nameBadgeText = 'ℹ️ Nama Mirip';
-                      nameBadgeClass = 'badge bg-info';
-                    } else {
-                      nameBadgeText = 'ℹ️ Nama Berbeda';
-                      nameBadgeClass = 'badge bg-secondary';
-                    }
+                  if (accountVerificationMethod === 'account_number') {
+                    // Jika rekening nomor valid, nama tidak perlu divalidasi
+                    nameBadgeText = '✓ Langsung Valid';
+                    nameBadgeClass = 'badge bg-success';
+                  } else if (accountVerificationMethod === 'account_name_only') {
+                    // Jika rekening nomor tidak valid tapi nama rekening valid
+                    nameBadgeText = '✓ Rekening SPMB Ditemukan';
+                    nameBadgeClass = 'badge bg-success';
+                  } else if (extractedName) {
+                    // Fallback untuk kasus lain
+                    nameBadgeText = `ℹ️ ${extractedName}`;
+                    nameBadgeClass = 'badge bg-info';
                   }
 
                   // Update the validation badges
@@ -788,14 +788,15 @@
                   
                   // Show success message with verification details
                   let successMessage = 'Pembayaran berhasil dikonfirmasi!';
+
                   if (accountVerificationMethod === 'account_number') {
-                    successMessage += ' ✓ Dikonfirmasi berdasarkan nomor rekening.';
-                  } else {
-                    successMessage += ' ✓ Dikonfirmasi berdasarkan nama rekening.';
+                    successMessage += ' ✓ Valid berdasarkan nomor rekening (tanpa perlu validasi nama).';
+                  } else if (accountVerificationMethod === 'account_name_only') {
+                    successMessage += ' ✓ Valid berdasarkan nama rekening SPMB.';
                   }
 
-                  if (extractedName) {
-                    successMessage += ` Nama di bukti: "${extractedName}".`;
+                  if (extractedName && accountVerificationMethod === 'account_number') {
+                    successMessage += ` Nama terdeteksi: "${extractedName}".`;
                   }
 
                   showSuccessPopup(successMessage, function() {
