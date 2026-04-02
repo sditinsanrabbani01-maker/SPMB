@@ -512,11 +512,11 @@
 
           // Specific patterns for common banking receipt formats
           namePatterns.push(
-            /Dari\s+\d+\s+([^\n]+)/i, // "Dari 9 Tanty Junialta" - SeaBank format
+            /Dari\s+\d+\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i, // "Dari 9 Tanty Junialta" - extract only the name part
             /Pengirim\s*:\s*([^\n]+)/i, // "Pengirim: Nama"
             /Transfer\s+dari\s+([^\n]+)/i, // "Transfer dari Nama"
             /Sumber\s*dana\s*:\s*([^\n]+)/i, // "Sumber dana: Nama"
-            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g // Pattern for proper names (First Last)
+            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,})/g // Pattern for proper names (at least 2 words)
           );
 
           let extractedName = '';
@@ -526,15 +526,41 @@
           for (const pattern of namePatterns) {
             const matches = text.match(pattern);
             if (matches) {
-              for (const match of matches) {
+              // Handle both array results (from /g flag) and single matches
+              const matchArray = Array.isArray(matches) ? matches : [matches];
+
+              for (const match of matchArray) {
                 let name = '';
+
                 if (typeof match === 'string') {
-                  // For simple patterns, the whole match might be the name
+                  // For patterns without capture groups, clean the whole match
                   name = match;
                 } else if (match[1]) {
-                  // For capture groups, use the captured part
+                  // For patterns with capture groups, use the captured name
                   name = match[1];
                 }
+
+                if (name) {
+                  name = name.trim();
+                  // Clean up the name - remove banking prefixes/suffixes
+                  name = name.replace(/^(dari|pengirim|sender|sumber dana|nama pengirim|transfer|ke)\s*/i, '');
+                  name = name.replace(/^[\d\s\-\@\/\.]+/, '').trim(); // Remove leading numbers/symbols
+                  name = name.replace(/[\d\s\-\@\/]+$/g, '').trim(); // Remove trailing numbers/symbols
+                  name = name.split('\n')[0].trim(); // Take only first line
+                  name = name.replace(/\s+/g, ' '); // Normalize spaces
+
+                  // Only keep names that look like actual names
+                  if (name.length >= 3 && name.length <= 50 &&
+                      /[a-zA-Z]/.test(name) && !/\d{4,}/.test(name) &&
+                      !name.toLowerCase().includes('spmb') &&
+                      !name.toLowerCase().includes('insan') &&
+                      !name.toLowerCase().includes('rabbani')) {
+                    extractedNames.push(name);
+                  }
+                }
+              }
+            }
+          }
 
                 if (name) {
                   name = name.trim();
@@ -558,21 +584,11 @@
 
           // Filter and select the best sender name
           if (extractedNames.length > 0) {
-            // Remove duplicates and very short names
-            extractedNames = [...new Set(extractedNames)].filter(name => name.length >= 3);
-
-            // Remove common banking terms and account names
-            extractedNames = extractedNames.filter(name => {
-              const nameLower = name.toLowerCase();
-              return !nameLower.includes('spmb') &&
-                     !nameLower.includes('insan') &&
-                     !nameLower.includes('rabbani') &&
-                     !nameLower.includes('bank') &&
-                     !nameLower.includes('muamalat') &&
-                     !nameLower.includes('sea bank') &&
-                     !nameLower.includes('transfer') &&
-                     !nameLower.includes('pembayaran');
-            });
+            // Remove duplicates and keep only valid names
+            extractedNames = [...new Set(extractedNames)].filter(name =>
+              name.length >= 3 && name.length <= 50 &&
+              /[a-zA-Z]/.test(name) && !/\d{4,}/.test(name)
+            );
 
             console.log('Filtered sender names:', extractedNames);
 
@@ -610,6 +626,21 @@
             }
 
             extractedName = bestMatch || extractedNames[0];
+
+            // Calculate name match confidence after we have the best match
+            if (extractedName) {
+              const extractedLower = extractedName.toLowerCase().replace(/\s+/g, ' ').trim();
+              const manualLower = namaSiswa.toLowerCase().replace(/\s+/g, ' ').trim();
+
+              if (extractedLower === manualLower) {
+                nameMatchConfidence = 'exact';
+              } else if (extractedLower.includes(manualLower) || manualLower.includes(extractedLower)) {
+                nameMatchConfidence = 'partial';
+              } else {
+                nameMatchConfidence = 'mismatch';
+              }
+            }
+
             console.log('Student name input:', namaSiswa);
             console.log('Best extracted name match:', extractedName, 'Score:', bestScore);
           }
@@ -625,19 +656,6 @@
           // Optional name matching - not critical for success
           let nameMatchConfidence = 'unknown';
           let nameMatchRequired = false; // We don't require name matching anymore
-
-          if (extractedName) {
-            const extractedLower = extractedName.toLowerCase().replace(/\s+/g, ' ').trim();
-            const manualLower = namaSiswa.toLowerCase().replace(/\s+/g, ' ').trim();
-
-            if (extractedLower === manualLower) {
-              nameMatchConfidence = 'exact';
-            } else if (extractedLower.includes(manualLower) || manualLower.includes(extractedLower)) {
-              nameMatchConfidence = 'partial';
-            } else {
-              nameMatchConfidence = 'mismatch';
-            }
-          }
 
           // Parse notes/comments from payment confirmation
           const notePatterns = [
