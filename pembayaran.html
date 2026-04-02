@@ -69,10 +69,12 @@
             <div class="alert alert-info" role="alert">
               <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Penting!</h6>
               <ul class="text-start mb-0">
-                <li><strong>Isi nama siswa dengan lengkap</strong> pada kolom yang tersedia</li>
-                <li>Sertakan nama siswa pada kolom berita transfer (opsional)</li>
-                <li>Simpan bukti transfer untuk verifikasi</li>
-                <li>Registrasi akan diproses setelah pembayaran diterima</li>
+                <li><strong>Pastikan transfer ke rekening yang benar:</strong> <code>7459990020230478</code> a.n. <strong>SPMB SD IT INSAN RABBANI</strong></li>
+                <li><strong>Isi nama siswa dengan lengkap dan benar</strong> pada kolom yang tersedia</li>
+                <li>Sertakan nama siswa pada kolom berita transfer untuk memudahkan verifikasi</li>
+                <li>Sistem akan <strong>secara otomatis memverifikasi rekening</strong> dan mencocokkan nama</li>
+                <li>Simpan bukti transfer untuk verifikasi manual jika diperlukan</li>
+                <li>Registrasi akan diproses setelah pembayaran dikonfirmasi</li>
                 <li>Pembayaran tidak dapat dikembalikan</li>
               </ul>
             </div>
@@ -130,12 +132,21 @@
                     </div>
                     <div class="col-md-9" id="transactionStatus"></div>
                   </div>
-                  <div class="row mt-2" id="driveLinkRow" style="display: none;">
-                    <div class="col-md-3">
-                      <strong>Link Bukti:</strong>
-                    </div>
-                    <div class="col-md-9" id="driveLink"></div>
-                  </div>
+                   <div class="row mt-2">
+                     <div class="col-md-3">
+                       <strong>Validasi:</strong>
+                     </div>
+                     <div class="col-md-9" id="validationInfo">
+                       <span class="badge bg-success">✓ Rekening Valid</span>
+                       <span class="badge bg-info" id="nameMatchBadge">Nama: Memproses...</span>
+                     </div>
+                   </div>
+                   <div class="row mt-2" id="driveLinkRow" style="display: none;">
+                     <div class="col-md-3">
+                       <strong>Link Bukti:</strong>
+                     </div>
+                     <div class="col-md-9" id="driveLink"></div>
+                   </div>
                 </div>
                 <div class="mt-4">
                   <button id="formButton" class="btn btn-success btn-lg px-5" disabled onclick="goToForm()">
@@ -326,6 +337,51 @@
           const { data: { text } } = await Tesseract.recognize(fileInput.files[0], 'ind');
           console.log('Extracted text:', text);
 
+          // Verify target account number
+          const targetAccount = '7459990020230478';
+          const accountPatterns = [
+            /(\d{3,4}[\d\s\-]*7459990020230478)/, // Look for account patterns containing our target
+            /7459990020230478/, // Direct match
+            /(\d{3,4}[\d\s\-]*\d{10,})/g // General account number patterns
+          ];
+
+          let accountFound = false;
+          let foundAccountNumber = '';
+
+          for (const pattern of accountPatterns) {
+            const matches = text.match(pattern);
+            if (matches) {
+              for (const match of (Array.isArray(matches) ? matches : [matches])) {
+                const cleanMatch = match.replace(/[\s\-]/g, '');
+                if (cleanMatch.includes(targetAccount)) {
+                  accountFound = true;
+                  foundAccountNumber = targetAccount;
+                  console.log('Target account found:', foundAccountNumber);
+                  break;
+                }
+              }
+              if (accountFound) break;
+            }
+          }
+
+          if (!accountFound) {
+            console.log('Target account not found in receipt');
+            document.getElementById('transactionName').textContent = 'Rekening Tidak Valid';
+            document.getElementById('transactionAmount').textContent = '-';
+            document.getElementById('transactionStatus').textContent = 'Rekening tujuan tidak ditemukan';
+
+            // Update validation badges
+            document.getElementById('validationInfo').innerHTML = `
+              <span class="badge bg-danger">✗ Rekening Tidak Valid</span>
+              <span class="badge bg-secondary">Nama: -</span>
+            `;
+
+            showErrorPopup(`Bukti pembayaran tidak untuk rekening SPMB SDIT Insan Rabbani.\n\nNomor rekening yang benar: 7459990020230478\nAtas nama: SPMB SD IT INSAN RABBANI\n\nPastikan Anda transfer ke rekening yang benar.`);
+            btn.disabled = false;
+            formButtonLoader.classList.add('d-none');
+            return;
+          }
+
           // Parse amount - look for Rp followed by number or just numbers
           // More robust regex to handle various formats
           const rpMatch = text.match(/Rp\s*(\d{1,3}(?:[.,]\d{3})*)/i);
@@ -357,31 +413,109 @@
           }
           console.log('Final amount:', amount);
 
-          // Extract sender name from OCR for verification (optional)
-          const namePatterns = [
-            /Nama Pengirim\s*([^\n]+)/i,
-            /Sumber Dana\s*([^\n]+)/i,
+          // Extract recipient/sender name from OCR using comprehensive keywords
+          const recipientKeywords = [
+            'nama', 'nama penerima', 'nama tujuan', 'nama rekening', 'atas nama', 'a.n', 'an',
+            'penerima', 'recipient', 'receiver', 'beneficiary', 'beneficiary name', 'account name',
+            'payee', 'to', 'kepada', 'ke', 'diterima oleh', 'nama pengirim', 'sumber dana'
+          ];
+
+          const namePatterns = [];
+
+          // Create patterns for each keyword combination
+          recipientKeywords.forEach(keyword => {
+            // Pattern: keyword [separator] name
+            namePatterns.push(new RegExp(`${keyword}\\s*[:.\\s]+\\s*([^\\n\\d]+)`, 'i'));
+            // Pattern: keyword [newline] name
+            namePatterns.push(new RegExp(`${keyword}\\s*\\n+\\s*([^\\n\\d]+)`, 'i'));
+          });
+
+          // Additional specific patterns for common banking apps
+          namePatterns.push(
             /Dari\s+\d+\s+([^\n]+)/i, // Pattern for "Dari 9 Tanty Junialta"
             /D\s*aam\s*:\s*([^\n]+)/i, // Pattern for BRILink "D aam : ..."
-            /Nama\s*:\s*([^\n]+)/i,
-            /Atas Nama\s*:\s*([^\n]+)/i
-          ];
+            /Pengirim\s*:\s*([^\n]+)/i,
+            /Transfer\s+(?:dari|ke)\s+([^\\n]+)/i,
+            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g // Pattern for proper names (First Last)
+          );
+
           let extractedName = '';
+          let extractedNames = [];
+
+          // Try each pattern
           for (const pattern of namePatterns) {
-            const match = text.match(pattern);
-            if (match) {
-              extractedName = match[1].trim();
-              // Remove any leading numbers or special characters
-              extractedName = extractedName.replace(/^[\d\s\-\@\/]+/, '').trim();
-              // Take only the first line if multiline
-              extractedName = extractedName.split('\n')[0].trim();
-              // Remove common suffixes like "SPMB SD IT INSAN RABBANI"
-              extractedName = extractedName.replace(/\s*SPMB\s*SD\s*IT\s*INSAN\s*RABBANI.*$/i, '').trim();
-              break;
+            const matches = text.match(pattern);
+            if (matches) {
+              for (const match of matches) {
+                let name = '';
+                if (typeof match === 'string') {
+                  // For simple patterns, the whole match might be the name
+                  name = match;
+                } else if (match[1]) {
+                  // For capture groups, use the captured part
+                  name = match[1];
+                }
+
+                if (name) {
+                  name = name.trim();
+                  // Clean up the name
+                  name = name.replace(/^[\d\s\-\@\/\.]+/, '').trim(); // Remove leading numbers/symbols
+                  name = name.replace(/[\d\s\-\@\/]+$/g, '').trim(); // Remove trailing numbers/symbols
+                  name = name.split('\n')[0].trim(); // Take only first line
+                  name = name.replace(/\s+/g, ' '); // Normalize spaces
+
+                  // Remove common banking suffixes
+                  name = name.replace(/\s*(?:spmb|sd\s*it|insan\s*rabbani|bank|bca|bni|bri|mandiri|cimb|muamalat).*?$/gi, '').trim();
+
+                  // Only keep names that look like actual names (at least 2 characters, contains letters)
+                  if (name.length >= 2 && /[a-zA-Z]/.test(name) && !/\d{4,}/.test(name)) {
+                    extractedNames.push(name);
+                  }
+                }
+              }
             }
           }
+
+          // Filter and select the best name
+          if (extractedNames.length > 0) {
+            // Remove duplicates and very short names
+            extractedNames = [...new Set(extractedNames)].filter(name => name.length >= 3);
+
+            // Prefer names that contain the manually entered student name
+            const studentNameLower = namaSiswa.toLowerCase();
+            const matchingNames = extractedNames.filter(name =>
+              name.toLowerCase().includes(studentNameLower) ||
+              studentNameLower.includes(name.toLowerCase())
+            );
+
+            if (matchingNames.length > 0) {
+              extractedName = matchingNames[0]; // Use first match
+            } else {
+              extractedName = extractedNames[0]; // Use first extracted name
+            }
+
+            console.log('All extracted names:', extractedNames);
+            console.log('Selected extracted name:', extractedName);
+          }
           console.log('OCR extracted name:', extractedName);
+          console.log('All extracted names:', extractedNames);
           console.log('Using manual student name:', namaSiswa);
+          console.log('Name match confidence:', nameMatchConfidence);
+
+          // Validate name match for better verification
+          let nameMatchConfidence = 'unknown';
+          if (extractedName) {
+            const extractedLower = extractedName.toLowerCase().replace(/\s+/g, ' ').trim();
+            const manualLower = namaSiswa.toLowerCase().replace(/\s+/g, ' ').trim();
+
+            if (extractedLower === manualLower) {
+              nameMatchConfidence = 'exact';
+            } else if (extractedLower.includes(manualLower) || manualLower.includes(extractedLower)) {
+              nameMatchConfidence = 'partial';
+            } else {
+              nameMatchConfidence = 'mismatch';
+            }
+          }
 
           // Parse notes/comments from payment confirmation
           const notePatterns = [
@@ -401,12 +535,31 @@
             }
           }
 
-          // Add extracted name to notes for verification if different from manual input
-          if (extractedName && extractedName !== namaSiswa && extractedName !== 'Unknown') {
-            notes = (notes ? notes + ' | ' : '') + 'Nama dari bukti: ' + extractedName;
+          // Add verification details to notes
+          let verificationNotes = [];
+          verificationNotes.push(`Rekening valid: ${foundAccountNumber}`);
+          verificationNotes.push(`Nama cocok: ${nameMatchConfidence}`);
+
+          if (extractedName) {
+            verificationNotes.push(`Nama dari bukti: ${extractedName}`);
           }
 
+          if (notes) {
+            verificationNotes.push(`Catatan: ${notes}`);
+          }
+
+          notes = verificationNotes.join(' | ');
+
           console.log('Parsed notes:', notes);
+
+          // Show warning if name doesn't match
+          if (nameMatchConfidence === 'mismatch' && extractedName) {
+            console.warn('Name mismatch detected:', {
+              manual: namaSiswa,
+              extracted: extractedName,
+              confidence: nameMatchConfidence
+            });
+          }
 
           if (amount >= 100000) {
             // Convert image to base64
@@ -418,9 +571,22 @@
                 const res = await fetch(URL_GAS, { method: "POST", body: JSON.stringify({ action: "savePayment", amount: amount, name: namaSiswa, status: "confirmed", image: base64, filename: fileInput.files[0].name, notes: notes }) });
                 const result = await res.json();
                 if (result.success) {
-                  document.getElementById('transactionName').textContent = name;
+                  document.getElementById('transactionName').textContent = namaSiswa;
                   document.getElementById('transactionAmount').textContent = 'Rp ' + amount.toLocaleString('id-ID');
-                  document.getElementById('transactionStatus').textContent = 'Dikonfirmasi';
+                  document.getElementById('transactionStatus').textContent = `Dikonfirmasi ✓ (Rek: ${foundAccountNumber})`;
+
+                  // Update validation badges
+                  const nameMatchBadge = document.getElementById('nameMatchBadge');
+                  if (nameMatchConfidence === 'exact') {
+                    nameMatchBadge.className = 'badge bg-success';
+                    nameMatchBadge.textContent = '✓ Nama Cocok';
+                  } else if (nameMatchConfidence === 'partial') {
+                    nameMatchBadge.className = 'badge bg-warning';
+                    nameMatchBadge.textContent = '⚠️ Nama Sebagian';
+                  } else {
+                    nameMatchBadge.className = 'badge bg-danger';
+                    nameMatchBadge.textContent = '✗ Nama Tidak Cocok';
+                  }
                   
                   // Show Drive link if available
                   if (result.driveLink) {
@@ -428,9 +594,21 @@
                     document.getElementById('driveLink').innerHTML = '<a href="' + result.driveLink + '" target="_blank"><i class="fas fa-external-link-alt me-1"></i>Lihat Bukti Pembayaran</a>';
                   }
                   
-                  // Enable form button after successful payment
-                  formButton.disabled = false;
-                  formButtonLoader.classList.add('d-none');
+                  // Show success message with verification details
+                  let successMessage = 'Pembayaran berhasil dikonfirmasi!';
+                  if (nameMatchConfidence === 'exact') {
+                    successMessage += ' ✓ Nama cocok persis.';
+                  } else if (nameMatchConfidence === 'partial') {
+                    successMessage += ' ✓ Nama cocok sebagian.';
+                  } else if (extractedName) {
+                    successMessage += ' ⚠️ Nama dari bukti berbeda.';
+                  }
+
+                  showSuccessPopup(successMessage, function() {
+                    // Enable form button after successful payment
+                    formButton.disabled = false;
+                    formButtonLoader.classList.add('d-none');
+                  });
                 } else {
                   document.getElementById('transactionName').textContent = 'Gagal';
                   document.getElementById('transactionAmount').textContent = '-';
