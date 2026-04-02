@@ -563,38 +563,47 @@
     }
 
     function handleCanvasMouseDown(e) {
+      console.log('Canvas mousedown:', e.target, e.target.classList);
+
       const canvas = document.getElementById('idCardCanvas');
 
-      // Don't handle canvas clicks if clicking on elements or their handles
+      // If clicking on an element or its resize handle, don't handle canvas click
       if (e.target !== canvas && !e.target.classList.contains('canvas-guide')) {
+        // Check if it's a resize handle click
+        if (e.target.classList.contains('resize-handle')) {
+          console.log('Clicked resize handle');
+          // Handle will be processed by element's mousedown listener
+          return;
+        }
+
+        // If clicking on an element, let the element handle it
+        let target = e.target;
+        while (target && target !== canvas) {
+          if (target.classList.contains('element')) {
+            console.log('Clicked on element');
+            // Element will handle its own click
+            return;
+          }
+          target = target.parentElement;
+        }
+
+        // If we reach here, it's some other element, ignore canvas click
         return;
       }
 
       const rect = canvas.getBoundingClientRect();
-
-      // Calculate mouse position relative to canvas (simplified for better accuracy)
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      // Adjust for zoom - convert screen coordinates to canvas coordinates
       const scale = zoomLevel / 100;
-      const canvasX = x / scale;
-      const canvasY = y / scale;
 
-      // Center the coordinates on the canvas
-      const centerX = canvas.offsetWidth / 2;
-      const centerY = canvas.offsetHeight / 2;
-      const finalX = canvasX - centerX + centerX;
-      const finalY = canvasY - centerY + centerY;
+      // Calculate mouse position relative to canvas, accounting for zoom
+      const x = (e.clientX - rect.left) / scale;
+      const y = (e.clientY - rect.top) / scale;
+
+      console.log('Canvas click at:', x, y, 'tool:', currentTool);
 
       if (currentTool === 'select') {
-        // Check if clicking on canvas background to deselect
-        const clickedElement = getElementAtPosition(finalX, finalY);
-        if (!clickedElement) {
-          deselectElement();
-        }
+        handleSelectTool(e, x, y);
       } else {
-        createNewElement(currentTool, finalX, finalY);
+        createNewElement(currentTool, x, y);
       }
     }
 
@@ -607,11 +616,12 @@
         // Check if clicking on resize handle
         const handle = getResizeHandleAtPosition(e, clickedElement);
         if (handle) {
-          startResize(clickedElement, handle);
+          startResize(clickedElement, handle, x, y);
         } else {
           isDragging = true;
-          dragOffset.x = e.offsetX || 0;
-          dragOffset.y = e.offsetY || 0;
+          // Calculate drag offset relative to element position
+          dragOffset.x = x - parseFloat(clickedElement.style.left || 0);
+          dragOffset.y = y - parseFloat(clickedElement.style.top || 0);
         }
       } else {
         deselectElement();
@@ -619,6 +629,8 @@
     }
 
     function createNewElement(type, x, y) {
+      console.log('Creating element:', type, 'at', x, y);
+
       const element = document.createElement('div');
       element.className = 'element';
       element.style.left = x + 'px';
@@ -781,6 +793,7 @@
           const elementWidth = element.offsetWidth;
           const elementHeight = element.offsetHeight;
 
+          // Check if point is within element bounds
           if (x >= elementX && x <= elementX + elementWidth &&
               y >= elementY && y <= elementY + elementHeight) {
             return element;
@@ -809,7 +822,7 @@
       const rect = canvas.getBoundingClientRect();
       const scale = zoomLevel / 100;
 
-      // Koordinat mouse relatif terhadap canvas yang sudah di-scale
+      // Calculate mouse position relative to canvas, accounting for zoom
       const mouseX = (e.clientX - rect.left) / scale;
       const mouseY = (e.clientY - rect.top) / scale;
 
@@ -836,13 +849,12 @@
         selectedElement.style.top = y + 'px';
 
         updatePropertiesPanel();
+        updatePositionInputs();
       } else if (isResizing && selectedElement) {
         selectedElement.classList.add('resizing');
         handleResize(e, mouseX, mouseY);
       }
 
-      // Update info koordinat di UI
-      updatePositionInputs();
       updateCoordinatesDisplay(e);
     }
 
@@ -870,7 +882,7 @@
 
     let initialResizeData = null;
 
-    function startResize(element, handle) {
+    function startResize(element, handle, mouseX, mouseY) {
       isResizing = true;
       resizeHandle = handle;
       initialResizeData = {
@@ -878,20 +890,13 @@
         startY: parseFloat(element.style.top || 0),
         startWidth: element.offsetWidth,
         startHeight: element.offsetHeight,
-        mouseStartX: 0,
-        mouseStartY: 0
+        mouseStartX: mouseX,
+        mouseStartY: mouseY
       };
     }
 
     function handleResize(e, mouseX, mouseY) {
       if (!initialResizeData) return;
-
-      // Initialize mouse start position on first resize move
-      if (initialResizeData.mouseStartX === 0 && initialResizeData.mouseStartY === 0) {
-        initialResizeData.mouseStartX = mouseX;
-        initialResizeData.mouseStartY = mouseY;
-        return;
-      }
 
       const deltaX = mouseX - initialResizeData.mouseStartX;
       const deltaY = mouseY - initialResizeData.mouseStartY;
@@ -1085,6 +1090,8 @@
     }
 
     function selectElement(element) {
+      console.log('Selecting element:', element.dataset.type, element);
+
       if (selectedElement) {
         selectedElement.classList.remove('selected');
         hideSizeInfo();
@@ -1299,13 +1306,30 @@
         element.textContent = data.content;
         element.style.cursor = 'text';
 
-        // Add event listeners
-        element.addEventListener('click', function(e) {
-          e.stopPropagation();
-          if (currentTool === 'select') {
-            selectElement(element);
+      // Add universal mousedown event listener
+      element.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        if (currentTool === 'select') {
+          selectElement(element);
+
+          const canvas = document.getElementById('idCardCanvas');
+          const rect = canvas.getBoundingClientRect();
+          const scale = zoomLevel / 100;
+          const x = (e.clientX - rect.left) / scale;
+          const y = (e.clientY - rect.top) / scale;
+
+          // Check if clicking on resize handle
+          const handle = getResizeHandleAtPosition(e, element);
+          if (handle) {
+            startResize(element, handle, x, y);
+          } else {
+            isDragging = true;
+            // Calculate drag offset relative to element position
+            dragOffset.x = x - parseFloat(element.style.left || 0);
+            dragOffset.y = y - parseFloat(element.style.top || 0);
           }
-        });
+        }
+      });
 
         element.addEventListener('dblclick', function(e) {
           e.stopPropagation();
