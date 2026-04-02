@@ -26,21 +26,34 @@
           <h4 class="fw-bold mb-3" style="color: #0141a4;"><i class="fas fa-clipboard-list me-2"></i>Syarat dan Ketentuan Pendaftaran SPMB</h4>
           <div class="row small text-secondary">
             <div class="col-md-6">
-              <h6><b>📋 Syarat Umum:</b></h6>
-              <ul>
-                <li>Usia 6 tahun sebelum 1 Juli 2026</li>
-                <li>Beragama Islam</li>
-                <li>Sehat jasmani dan rohani</li>
-                <li>Bersedia mengikuti kurikulum SDIT</li>
-                <li>Bersedia mengikuti aturan SDIT</li>
-              </ul>
+               <h6><b>📋 Syarat Umum:</b></h6>
+               <ul>
+                 <li>Tanggal lahir maksimal 1 Juni 2020</li>
+                 <li>Usia minimal 5 tahun</li>
+                 <li>Beragama Islam</li>
+                 <li>Sehat jasmani dan rohani</li>
+                 <li>Bersedia mengikuti kurikulum SDIT</li>
+                 <li>Bersedia mengikuti aturan SDIT</li>
+               </ul>
             </div>
 
         <div class="card card-form p-4">
           <div class="card-body">
             <h3 class="text-center fw-bold mb-4" style="color: #0141a4;">Formulir Pendaftaran</h3>
             
-            <form id="SPMBForm" onsubmit="handleFormSubmit(); return false;">
+             <form id="SPMBForm" onsubmit="handleFormSubmit(); return false;">
+               <script>
+                 // Validasi real-time untuk tanggal lahir
+                 document.getElementById('tanggalLahir').addEventListener('change', function() {
+                   const tanggalLahir = new Date(this.value);
+                   const tanggalLahirMaksimal = new Date('2020-06-01');
+
+                   if (tanggalLahir > tanggalLahirMaksimal) {
+                     alert("Tanggal lahir maksimal adalah 1 Juni 2020!");
+                     this.value = '';
+                   }
+                 });
+               </script>
               <h5 class="text-secondary mb-3"><i class="fas fa-user me-2"></i>Data Siswa</h5>
               <div class="mb-3">
                 <label class="form-label">Nama Lengkap *</label>
@@ -61,10 +74,11 @@
                   <label class="form-label">Tempat Lahir *</label>
                   <input type="text" id="tempatLahir" class="form-control" required>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Tanggal Lahir *</label>
-                  <input type="date" id="tanggalLahir" class="form-control" required>
-                </div>
+                 <div class="col-md-6 mb-3">
+                   <label class="form-label">Tanggal Lahir *</label>
+                   <input type="date" id="tanggalLahir" class="form-control" max="2020-06-01" required>
+                   <small class="form-text text-muted">Maksimal tanggal lahir: 1 Juni 2020</small>
+                 </div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Jenis Kelamin *</label>
@@ -504,16 +518,26 @@
          return;
        }
 
-       // Validasi Usia (harus 6 tahun sebelum 1 Juli 2026)
-       const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
-       const batasUsia = new Date('2026-07-01');
-       const usiaDalamTahun = (batasUsia - tanggalLahir) / (365.25 * 24 * 60 * 60 * 1000);
-       if (usiaDalamTahun < 6) {
-         alert("Usia minimal harus 6 tahun sebelum 1 Juli 2026!");
-         btn.disabled = false;
-         loader.style.display = 'none';
-         return;
-       }
+        // Validasi Tanggal Lahir (maksimal 1 Juni)
+        const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
+        const tanggalLahirMaksimal = new Date('2020-06-01'); // Maksimal 1 Juni 2020
+
+        if (tanggalLahir > tanggalLahirMaksimal) {
+          alert("Tanggal lahir maksimal adalah 1 Juni 2020!");
+          btn.disabled = false;
+          loader.style.display = 'none';
+          return;
+        }
+
+        // Validasi usia minimal (minimal 5 tahun pada saat pendaftaran)
+        const tanggalSekarang = new Date();
+        const usiaDalamTahun = (tanggalSekarang - tanggalLahir) / (365.25 * 24 * 60 * 60 * 1000);
+        if (usiaDalamTahun < 5) {
+          alert("Usia minimal harus 5 tahun!");
+          btn.disabled = false;
+          loader.style.display = 'none';
+          return;
+        }
 
        // Validasi WhatsApp
        let hpAyah = document.getElementById('hpAyah').value;
