@@ -200,8 +200,8 @@ function handleSubmit(data) {
   if (whatsappNumber) {
     Logger.log("Sending WhatsApp to parent: " + whatsappNumber);
     var greeting = data.hpIbu ? "Assalamu'alaikum Bunda" : "Assalamu'alaikum Ayah";
-    var inviteLink = getGroupInviteLink();
-    var linkPart = inviteLink ? "\n\n🔗 Link Grup WhatsApp SPMB 2026/2027:\n" + inviteLink : "";
+    var inviteLink = "https://chat.whatsapp.com/KskAE6ZwVQy8JoifTGNDNO";
+    var linkPart = "\n\n🔗 Link Grup WhatsApp SPMB 2026/2027:\n" + inviteLink;
     var message = greeting + "\n\n" +
                   "✨ *SELAMAT!* ✨\n\n" +
                   "Pendaftaran SPMB SDIT Insan Rabbani telah *BERHASIL* diproses.\n\n" +
