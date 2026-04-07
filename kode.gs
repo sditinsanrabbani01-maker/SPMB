@@ -195,11 +195,25 @@ function handleSubmit(data) {
                     data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
   Logger.log("Data saved to sheet successfully");
 
-  // Send WhatsApp notification to parent
-  var whatsappNumber = data.hpAyah || data.hpIbu;
+  // Send single combined WhatsApp notification to parent
+  var whatsappNumber = data.hpIbu || data.hpAyah;
   if (whatsappNumber) {
     Logger.log("Sending WhatsApp to parent: " + whatsappNumber);
-    var message = "Pendaftaran SPMB SDIT Insan Rabbani berhasil!\n\nNo Registrasi: " + regNo + "\nNama: " + data.nama + "\nStatus: MENUNGGU\n\nSilakan cek status pendaftaran secara berkala.";
+    var greeting = data.hpIbu ? "Assalamu'alaikum Bunda" : "Assalamu'alaikum Ayah";
+    var inviteLink = getGroupInviteLink();
+    var linkPart = inviteLink ? "\n\n🔗 Link Grup WhatsApp SPMB 2026/2027:\n" + inviteLink : "";
+    var message = greeting + "\n\n" +
+                  "✨ *SELAMAT!* ✨\n\n" +
+                  "Pendaftaran SPMB SDIT Insan Rabbani telah *BERHASIL* diproses.\n\n" +
+                  "📋 *Detail Pendaftaran:*\n" +
+                  "• Nama Siswa: *" + data.nama + "*\n" +
+                  "• No Registrasi: *" + regNo + "*\n" +
+                  "• Status: *MENUNGGU*\n\n" +
+                  "💫 Terima kasih atas kepercayaan Anda mendaftarkan putra/putri tercinta di SDIT Insan Rabbani.\n" +
+                  "Silakan cek status pendaftaran secara berkala." +
+                  linkPart + "\n\n" +
+                  "_Salam hangat,_ \n" +
+                  "*Tim SPMB SDIT Insan Rabbani*";
     var waResult = sendWhatsAppMessage(whatsappNumber, message);
     Logger.log("Parent WhatsApp result: " + waResult);
   } else {
@@ -218,10 +232,6 @@ function handleSubmit(data) {
   } else {
     Logger.log("No CP numbers found");
   }
-
-  // Send group invitation to registrant (priority: mother > father)
-  Logger.log("Sending group invitation to registrant");
-  sendGroupInvitation(data.hpIbu, data.hpAyah, data.nama, regNo);
 
   Logger.log("handleSubmit completed successfully");
   return regNo;
@@ -504,7 +514,15 @@ function normalizeWhatsAppNumber(num) {
 }
 
 function sendWhatsAppMessage(number, message) {
+  if (!number || number.toString().trim() === '') {
+    Logger.log("Error: WhatsApp number is empty or null");
+    return false;
+  }
   var normalizedNumber = normalizeWhatsAppNumber(number);
+  if (!normalizedNumber || normalizedNumber.length < 10 || !normalizedNumber.startsWith('62')) {
+    Logger.log("Error: Invalid WhatsApp number after normalization: " + normalizedNumber + " (original: " + number + ")");
+    return false;
+  }
   var deviceId = "9b33e3a9-e9ff-4f8b-a62a-90b5eee3f946";
   var url = "https://api.whacenter.com/api/send";
   var payload = {
@@ -576,6 +594,8 @@ function getWhatsAppGroups() {
 
 
 // Function to send group invitation to registrant when new registration is submitted
+// NOTE: This function is no longer used in handleSubmit to avoid duplicate WhatsApp messages.
+// The notification is now handled directly in handleSubmit with a combined message.
 function sendGroupInvitation(hpIbu, hpAyah, namaSiswa, noReg) {
   Logger.log("=== sendGroupInvitation called ===");
   Logger.log("Mother: " + hpIbu + ", Father: " + hpAyah + ", Student: " + namaSiswa + ", RegNo: " + noReg);
