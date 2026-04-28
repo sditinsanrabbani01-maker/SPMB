@@ -41,19 +41,7 @@
           <div class="card-body">
             <h3 class="text-center fw-bold mb-4" style="color: #0141a4;">Formulir Pendaftaran</h3>
             
-             <form id="SPMBForm" onsubmit="handleFormSubmit(); return false;">
-               <script>
-                 // Validasi real-time untuk tanggal lahir
-                 document.getElementById('tanggalLahir').addEventListener('change', function() {
-                   const tanggalLahir = new Date(this.value);
-                   const tanggalLahirMaksimal = new Date('2020-06-01');
-
-                   if (tanggalLahir > tanggalLahirMaksimal) {
-                     alert("Tanggal lahir maksimal adalah 1 Juni 2020!");
-                     this.value = '';
-                   }
-                 });
-               </script>
+              <form id="SPMBForm" onsubmit="return false;">
               <h5 class="text-secondary mb-3"><i class="fas fa-user me-2"></i>Data Siswa</h5>
               <div class="mb-3">
                 <label class="form-label">Nama Lengkap *</label>
@@ -62,7 +50,7 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label">NIK *</label>
-                  <input type="number" id="nik" class="form-control" required>
+                  <input type="text" id="nik" class="form-control" pattern="\d{16}" maxlength="16" required>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">NISN</label>
@@ -219,7 +207,7 @@
               
               <div class="d-flex align-items-center justify-content-between">
                 <div class="loader" id="submitLoader"></div>
-                <button type="submit" id="btnKirim" class="btn btn-gradient px-5 py-2">Kirim Pendaftaran</button>
+                <button type="button" onclick="handleFormSubmit()" id="btnKirim" class="btn btn-gradient px-5 py-2">Kirim Pendaftaran</button>
               </div>
             </form>
             
@@ -271,8 +259,10 @@
   </script>
 
    <script>
-     // Memastikan API_URL terbaca dari config.js
-     const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
+      // Memastikan API_URL terbaca dari config.js
+      const URL_GAS = typeof CONFIG_API_URL !== 'undefined' ? CONFIG_API_URL : "";
+      console.log('CONFIG_API_URL defined:', typeof CONFIG_API_URL !== 'undefined');
+      console.log('URL_GAS:', URL_GAS);
 
      function toggleManualAddress() {
        const select = document.getElementById('alamatSelect');
@@ -307,31 +297,35 @@
        }
      }
 
-     function validateForm() {
-       // Clear previous errors
-       clearErrors();
+      function validateForm() {
+        // Clear previous errors
+        clearErrors();
+
+        let isValid = true;
+
+        // Nama Lengkap
+        const nama = document.getElementById('nama').value.trim();
+        if (!nama) {
+          console.log('Validation failed: nama is empty');
+          showError('nama', 'Nama lengkap harus diisi');
+          isValid = false;
+        } else if (nama.length < 3) {
+          console.log('Validation failed: nama too short');
+          showError('nama', 'Nama lengkap minimal 3 karakter');
+          isValid = false;
+        }
        
-       let isValid = true;
-       
-       // Nama Lengkap
-       const nama = document.getElementById('nama').value.trim();
-       if (!nama) {
-         showError('nama', 'Nama lengkap harus diisi');
-         isValid = false;
-       } else if (nama.length < 3) {
-         showError('nama', 'Nama lengkap minimal 3 karakter');
-         isValid = false;
-       }
-       
-       // NIK
-       const nik = document.getElementById('nik').value.trim();
-       if (!nik) {
-         showError('nik', 'NIK harus diisi');
-         isValid = false;
-       } else if (!/^\d{16}$/.test(nik)) {
-         showError('nik', 'NIK harus 16 digit angka');
-         isValid = false;
-       }
+        // NIK
+        const nik = document.getElementById('nik').value.trim();
+        if (!nik) {
+          console.log('Validation failed: nik is empty');
+          showError('nik', 'NIK harus diisi');
+          isValid = false;
+        } else if (!/^\d{16}$/.test(nik)) {
+          console.log('Validation failed: nik invalid format');
+          showError('nik', 'NIK harus 16 digit angka');
+          isValid = false;
+        }
        
        // Tempat Lahir
        const tempatLahir = document.getElementById('tempatLahir').value.trim();
@@ -340,26 +334,29 @@
          isValid = false;
        }
        
-       // Tanggal Lahir
-       const tanggalLahir = document.getElementById('tanggalLahir').value;
-       if (!tanggalLahir) {
-         showError('tanggalLahir', 'Tanggal lahir harus diisi');
-         isValid = false;
-       }
+        // Tanggal Lahir
+        const tanggalLahir = document.getElementById('tanggalLahir').value;
+        if (!tanggalLahir) {
+          console.log('Validation failed: tanggalLahir is empty');
+          showError('tanggalLahir', 'Tanggal lahir harus diisi');
+          isValid = false;
+        }
        
-       // Jenis Kelamin
-       const jk = document.getElementById('jk').value;
-       if (!jk) {
-         showError('jk', 'Jenis kelamin harus dipilih');
-         isValid = false;
-       }
+        // Jenis Kelamin
+        const jk = document.getElementById('jk').value;
+        if (!jk) {
+          console.log('Validation failed: jk not selected');
+          showError('jk', 'Jenis kelamin harus dipilih');
+          isValid = false;
+        }
        
-       // ABK
-       const abk = document.getElementById('abk').value;
-       if (!abk) {
-         showError('abk', 'Status ABK harus dipilih');
-         isValid = false;
-       }
+        // ABK
+        const abk = document.getElementById('abk').value;
+        if (!abk) {
+          console.log('Validation failed: abk not selected');
+          showError('abk', 'Status ABK harus dipilih');
+          isValid = false;
+        }
        
        // Alamat
        const alamatSelect = document.getElementById('alamatSelect').value;
@@ -504,19 +501,23 @@
        });
      }
 
-     async function handleFormSubmit() {
-       const btn = document.getElementById('btnKirim');
-       const loader = document.getElementById('submitLoader');
+      async function handleFormSubmit() {
+        console.log('handleFormSubmit called');
+        const btn = document.getElementById('btnKirim');
+        const loader = document.getElementById('submitLoader');
 
-       btn.disabled = true;
-       loader.style.display = 'block';
+        btn.disabled = true;
+        loader.style.display = 'block';
 
-       // Comprehensive validation
-       if (!validateForm()) {
-         btn.disabled = false;
-         loader.style.display = 'none';
-         return;
-       }
+        // Comprehensive validation
+        console.log('Validating form...');
+        if (!validateForm()) {
+          console.log('Validation failed');
+          btn.disabled = false;
+          loader.style.display = 'none';
+          return;
+        }
+        console.log('Validation passed');
 
         // Validasi Tanggal Lahir (maksimal 1 Juni)
         const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
@@ -599,26 +600,32 @@
         }
       };
 
-      try {
-        const response = await fetch(URL_GAS, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
+       console.log('URL_GAS:', URL_GAS);
+       console.log('Payload:', payload);
+       try {
+         const response = await fetch(URL_GAS, {
+           method: "POST",
+           body: JSON.stringify(payload)
+         });
+         console.log('Fetch response status:', response.status);
         
-        const result = await response.json();
+         const result = await response.json();
+         console.log('Response result:', result);
 
         if(result.success){
+          console.log('Success, regNo:', result.regNo);
           document.getElementById('noRegText').innerText = result.regNo;
           document.getElementById('SPMBForm').classList.add('d-none');
           document.getElementById('alertSuccess').classList.remove('d-none');
           window.scrollTo(0,0);
         } else {
+          console.log('Failed:', result.message);
           alert("Gagal: " + result.message);
         }
-      } catch (err) {
-        console.error(err);
-        alert("Terjadi kesalahan koneksi atau ukuran file terlalu besar.");
-      } finally {
+       } catch (err) {
+         console.error('Fetch error:', err);
+         alert("Terjadi kesalahan koneksi atau ukuran file terlalu besar.");
+       } finally {
         btn.disabled = false;
         loader.style.display = 'none';
       }
@@ -667,6 +674,17 @@
         `;
       }
     }
+
+    // Validasi real-time untuk tanggal lahir
+    document.getElementById('tanggalLahir').addEventListener('change', function() {
+      const tanggalLahir = new Date(this.value);
+      const tanggalLahirMaksimal = new Date('2020-06-01');
+
+      if (tanggalLahir > tanggalLahirMaksimal) {
+        alert("Tanggal lahir maksimal adalah 1 Juni 2020!");
+        this.value = '';
+      }
+    });
   </script>
 </body>
 </html>

@@ -514,25 +514,8 @@
             }
           }
 
-                if (name) {
-                  name = name.trim();
-                  // Clean up the name
-                  name = name.replace(/^[\d\s\-\@\/\.]+/, '').trim(); // Remove leading numbers/symbols
-                  name = name.replace(/[\d\s\-\@\/]+$/g, '').trim(); // Remove trailing numbers/symbols
-                  name = name.split('\n')[0].trim(); // Take only first line
-                  name = name.replace(/\s+/g, ' '); // Normalize spaces
-
-                  // Remove common banking suffixes
-                  name = name.replace(/\s*(?:spmb|sd\s*it|insan\s*rabbani|bank|bca|bni|bri|mandiri|cimb|muamalat).*?$/gi, '').trim();
-
-                  // Only keep names that look like actual names (at least 2 characters, contains letters)
-                  if (name.length >= 2 && /[a-zA-Z]/.test(name) && !/\d{4,}/.test(name)) {
-                    extractedNames.push(name);
-                  }
-                }
-              }
-            }
-          }
+          // Optional name matching - not critical for success
+          let nameMatchConfidence = 'unknown';
 
           // Filter and select the best sender name
           if (extractedNames.length > 0) {
@@ -607,7 +590,6 @@
           console.log('==============================');
 
           // Optional name matching - not critical for success
-          let nameMatchConfidence = 'unknown';
           let nameMatchRequired = false; // We don't require name matching anymore
 
           // Parse notes/comments from payment confirmation
@@ -699,7 +681,7 @@
 
                   // Update the validation badges
                   validationInfo.innerHTML = `
-                    <span class="badge bg-success">${methodText}</span>
+                    <span class="badge bg-success">${accountBadgeText}</span>
                     <span class="${nameBadgeClass}">${nameBadgeText}</span>
                   `;
                   

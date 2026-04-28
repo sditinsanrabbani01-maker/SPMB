@@ -55,6 +55,7 @@
                     <p><strong>Alamat Sekolah:</strong> ${d.alamatSekolah}</p>
                     <hr>
                     <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></p>
+                    ${d.buktiTransferLink ? `<p><strong>Bukti Transfer:</strong> <a href="${d.buktiTransferLink}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat Bukti</a></p>` : ''}
                     <p><strong>Waktu Pendaftaran:</strong> ${new Date(d.timestamp).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</p>
                 </div>
             `;

@@ -184,6 +184,7 @@
                 <th>Nama</th>
                 <th>WhatsApp</th>
                 <th>Status</th>
+                <th>Bukti Transfer</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -255,6 +256,7 @@
                     <td>${d.nama}</td>
                     <td>${d.hp}</td>
                     <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
+                    <td>${d.buktiTransferLink ? `<a href="${d.buktiTransferLink}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat Bukti</a>` : '-'}</td>
                     <td>
                         <button onclick="upStat('${d.noReg}','LULUS')" class="btn btn-sm btn-success me-1 lulus-btn" ${d.status === 'LULUS' ? 'disabled' : ''}>Lulus</button>
                         <button onclick="upStat('${d.noReg}','TOLAK')" class="btn btn-sm btn-danger me-1 tolak-btn" ${d.status === 'TOLAK' || d.status === 'LULUS' ? 'disabled' : ''}>Tolak</button>

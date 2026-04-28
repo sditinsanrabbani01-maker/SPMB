@@ -192,7 +192,7 @@ function handleSubmit(data) {
   sheet.appendRow([new Date(), regNo, data.nama, data.nik, data.nisn, data.tempatLahir, data.tanggalLahir, data.jk, data.abk, data.alamat,
                     data.namaAyah, data.pekerjaanAyah, data.alamatAyah, data.gajiAyah, data.hpAyah,
                     data.namaIbu, data.pekerjaanIbu, data.alamatIbu, data.gajiIbu, data.hpIbu,
-                    data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU"]);
+                    data.namaSekolah, data.npsn, data.alamatSekolah, "MENUNGGU", ""]);
   Logger.log("Data saved to sheet successfully");
 
   // Send single combined WhatsApp notification to parent
@@ -247,7 +247,8 @@ function handleSubmit(data) {
         noReg: rows[i][1],
         nama: rows[i][2],
         hp: rows[i][14] || rows[i][19], // HP Ayah atau Ibu
-        status: rows[i][23]
+        status: rows[i][23],
+        buktiTransferLink: rows[i][24] || ""
       });
     }
     return result;
@@ -373,7 +374,8 @@ function handleCekStatus(keyword) {
         namaSekolah: rows[i][20],
         npsn: rows[i][21],
         alamatSekolah: rows[i][22],
-        status: rows[i][23]
+        status: rows[i][23],
+        buktiTransferLink: rows[i][24] || ""
       };
     }
   }
@@ -433,7 +435,8 @@ function handleGetRegistrantDetails(noReg) {
         namaSekolah: rows[i][20],
         npsn: rows[i][21],
         alamatSekolah: rows[i][22],
-        status: rows[i][23]
+        status: rows[i][23],
+        buktiTransferLink: rows[i][24] || ""
       };
     }
   }
@@ -450,7 +453,7 @@ function handleSavePayment(amount, name, status, image, filename, notes) {
     var rootFolder = DriveApp.getFolderById("1X68-LaYIrVPni2utMXLB5AxGK2VmTGo5");
     var studentFolderName = name.replace(/[\\\/:*?"<>|]/g, '_'); // Remove invalid folder name characters
     var studentFolder;
-    
+
     // Check if student folder already exists
     var folders = rootFolder.getFoldersByName(studentFolderName);
     if (folders.hasNext()) {
@@ -459,15 +462,25 @@ function handleSavePayment(amount, name, status, image, filename, notes) {
       // Create new student folder
       studentFolder = rootFolder.createFolder(studentFolderName);
     }
-    
+
     // Rename file to "Konfirmasi Pembayaran - Nama Siswa"
     var fileExtension = filename.split('.').pop();
     var fileName = "Konfirmasi Pembayaran - " + name + "." + fileExtension;
     var blob = Utilities.newBlob(Utilities.base64Decode(image), 'image/jpeg', fileName);
     var file = studentFolder.createFile(blob);
-    
+
     // Get the Drive link
     driveLink = file.getUrl();
+
+    // Update the registration data with the bukti transfer link
+    var dataSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data_SPMB");
+    var data = dataSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) { // Start from row 1 (skip header)
+      if (data[i][2] === name) { // Column 2 is nama (0-indexed: 0=date, 1=regNo, 2=nama)
+        dataSheet.getRange(i + 1, 25).setValue(driveLink); // Column 25 is the bukti transfer link (last column)
+        break;
+      }
+    }
   }
 
   return { success: true, driveLink: driveLink };
