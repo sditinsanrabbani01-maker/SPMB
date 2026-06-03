@@ -28,8 +28,8 @@
             <div class="col-md-6">
                <h6><b>📋 Syarat Umum:</b></h6>
                <ul>
-                 <li>Tanggal lahir maksimal 1 Juni 2020</li>
-                 <li>Usia minimal 5 tahun</li>
+
+                 <li>Usia minimal 6 Tahun</li>
                  <li>Beragama Islam</li>
                  <li>Sehat jasmani dan rohani</li>
                  <li>Bersedia mengikuti kurikulum SDIT</li>
@@ -62,11 +62,10 @@
                   <label class="form-label">Tempat Lahir *</label>
                   <input type="text" id="tempatLahir" class="form-control" required>
                 </div>
-                 <div class="col-md-6 mb-3">
-                   <label class="form-label">Tanggal Lahir *</label>
-                   <input type="date" id="tanggalLahir" class="form-control" max="2020-06-01" required>
-                   <small class="form-text text-muted">Maksimal tanggal lahir: 1 Juni 2020</small>
-                 </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Tanggal Lahir *</label>
+                    <input type="date" id="tanggalLahir" class="form-control" required>
+                  </div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Jenis Kelamin *</label>
@@ -519,22 +518,13 @@
         }
         console.log('Validation passed');
 
-        // Validasi Tanggal Lahir (maksimal 1 Juni)
-        const tanggalLahir = new Date(document.getElementById('tanggalLahir').value);
-        const tanggalLahirMaksimal = new Date('2020-06-01'); // Maksimal 1 Juni 2020
 
-        if (tanggalLahir > tanggalLahirMaksimal) {
-          alert("Tanggal lahir maksimal adalah 1 Juni 2020!");
-          btn.disabled = false;
-          loader.style.display = 'none';
-          return;
-        }
 
-        // Validasi usia minimal (minimal 5 tahun pada saat pendaftaran)
+        // Validasi usia minimal (minimal 6 Tahun pada saat pendaftaran)
         const tanggalSekarang = new Date();
         const usiaDalamTahun = (tanggalSekarang - tanggalLahir) / (365.25 * 24 * 60 * 60 * 1000);
         if (usiaDalamTahun < 5) {
-          alert("Usia minimal harus 5 tahun!");
+          alert("Usia minimal harus 6 Tahun!");
           btn.disabled = false;
           loader.style.display = 'none';
           return;
@@ -675,16 +665,7 @@
       }
     }
 
-    // Validasi real-time untuk tanggal lahir
-    document.getElementById('tanggalLahir').addEventListener('change', function() {
-      const tanggalLahir = new Date(this.value);
-      const tanggalLahirMaksimal = new Date('2020-06-01');
 
-      if (tanggalLahir > tanggalLahirMaksimal) {
-        alert("Tanggal lahir maksimal adalah 1 Juni 2020!");
-        this.value = '';
-      }
-    });
   </script>
 </body>
 </html>
